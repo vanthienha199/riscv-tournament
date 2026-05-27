@@ -1,0 +1,38 @@
+# --- Core build outputs ---
+build/
+cores/*/files/
+*.elf
+*.bin
+
+# --- Simulation & synthesis artifacts ---
+*.vvp
+*.fst
+DUT-*.signature
+*.signature.tmp
+
+# --- Tournament run outputs ---
+results/
+
+# --- Local setup / vendored tooling (see `make setup`) ---
+framework/bin/
+framework/sail-riscv/
+framework/tests/riscv-arch-test/
+framework/tests/riscof_work/
+framework/tests/config.ini
+
+# Auto-generated per-core RISCOF plugins (keep plugins/ and sail_cSim/)
+/framework/tests/*/
+!/framework/tests/plugins/
+!/framework/tests/sail_cSim/
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+.mypy_cache/
+.pytest_cache/
+
+# --- Editor / OS ---
+*~
+.DS_Store
+.vscode/
+.idea/

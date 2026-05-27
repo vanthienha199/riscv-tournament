@@ -1,0 +1,10 @@
+name: verilog
+hdl: Verilog
+top_module: rv32i_plh
+description: 5-stage pipelined RV32I core with hazard unit
+architecture: plh
+isa: rv32i
+simulator: iverilog
+riscof_dmem_size: 65540
+synth_target: tec0117
+synth_device: GW1NR-LV9QN88C6/I5

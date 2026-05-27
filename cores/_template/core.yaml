@@ -1,0 +1,10 @@
+name: YOUR_HDL_NAME
+hdl: Your HDL (e.g. VHDL, Chisel, SpinalHDL, Bluespec)
+top_module: core_top
+description: Short description of your implementation
+architecture: plh
+isa: rv32i
+simulator: custom
+riscof_dmem_size: 65540
+synth_target: tec0117
+synth_device: GW1NR-LV9QN88C6/I5
