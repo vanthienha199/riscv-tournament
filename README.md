@@ -1,4 +1,4 @@
-# RV Tournament
+# Risc-V Tournament: Battle of HDLs
 
 A community-driven, reproducible comparison framework for RISC-V microarchitecture implementations across HDL paradigms.
 
