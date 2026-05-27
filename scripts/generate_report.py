@@ -28,23 +28,69 @@ def load_core_meta(core_dir):
     return meta
 
 
-def parse_riscof_summary(core_name):
-    summary = os.path.join(RESULTS, core_name, "riscof_summary.txt")
-    if not os.path.isfile(summary):
-        return None
-    with open(summary) as f:
-        text = f.read()
-    passed = failed = total = 0
-    m = re.search(r"Total\s*:\s*(\d+)", text)
+def _strip_ansi(text):
+    return re.sub(r"\x1b\[[0-9;]*m", "", text)
+
+
+def _parse_riscof_text(text):
+    """Parse RISCOF run/testlist logs (per-test STATUS lines or summary totals)."""
+    text = _strip_ansi(text)
+    passed = len(re.findall(r":\s*Passed\s*$", text, re.MULTILINE))
+    failed = len(re.findall(r":\s*Failed\s*$", text, re.MULTILINE))
+
+    total = 0
+    m = re.search(r"Following\s+(\d+)\s+tests?\s+have\s+been\s+run", text, re.IGNORECASE)
     if m:
         total = int(m.group(1))
-    m = re.search(r"Passed\s*:\s*(\d+)", text)
-    if m:
-        passed = int(m.group(1))
-    m = re.search(r"Failed\s*:\s*(\d+)", text)
-    if m:
-        failed = int(m.group(1))
-    return {"total": total, "passed": passed, "failed": failed, "pass_rate": (passed / total * 100) if total else 0}
+    for pattern in (
+        r"Total\s*:\s*(\d+)",
+        r"Tests\s+run\s*:\s*(\d+)",
+    ):
+        m = re.search(pattern, text, re.IGNORECASE)
+        if m:
+            total = int(m.group(1))
+            break
+
+    if not total:
+        total = passed + failed
+
+    if not total and not passed and not failed:
+        return None
+
+    if not passed and not failed:
+        m = re.search(r"Passed\s*:\s*(\d+)", text, re.IGNORECASE)
+        if m:
+            passed = int(m.group(1))
+        m = re.search(r"Failed\s*:\s*(\d+)", text, re.IGNORECASE)
+        if m:
+            failed = int(m.group(1))
+        if not total:
+            total = passed + failed
+
+    return {
+        "total": total,
+        "passed": passed,
+        "failed": failed,
+        "pass_rate": (passed / total * 100) if total else 0,
+    }
+
+
+def parse_riscof_summary(core_name):
+    candidates = [
+        os.path.join(RESULTS, core_name, "riscof_run.log"),
+        os.path.join(RESULTS, core_name, "riscof_summary.txt"),
+    ]
+    best = None
+    for path in candidates:
+        if not os.path.isfile(path):
+            continue
+        with open(path) as f:
+            parsed = _parse_riscof_text(f.read())
+        if parsed is None:
+            continue
+        if best is None or parsed["total"] > best["total"]:
+            best = parsed
+    return best
 
 
 def parse_pnr_report(core_name):
@@ -106,8 +152,8 @@ def build_report():
         "",
         "### Architecture Test Compliance (RISCOF / RV32I)",
         "",
-        "| Core | HDL | Architecture | Tests Passed | Tests Failed | Pass Rate |",
-        "|------|-----|--------------|--------------|--------------|-----------|",
+        "| Core | HDL | Tests Passed | Tests Failed | Pass Rate |",
+        "|------|-----|--------------|--------------|-----------|",
     ]
 
     synth_rows = []
@@ -116,12 +162,12 @@ def build_report():
         tests = parse_riscof_summary(core)
         if tests:
             lines.append(
-                f"| {core} | {meta.get('hdl', '-')} | {meta.get('architecture', '-')} | "
+                f"| {core} | {meta.get('hdl', '-')} | "
                 f"{tests['passed']} | {tests['failed']} | {tests['pass_rate']:.1f}% |"
             )
         else:
             lines.append(
-                f"| {core} | {meta.get('hdl', '-')} | {meta.get('architecture', '-')} | - | - | - |"
+                f"| {core} | {meta.get('hdl', '-')} | - | - | - |"
             )
 
         pnr = parse_pnr_report(core)

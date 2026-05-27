@@ -6,6 +6,30 @@ Modern HDLs span traditional RTL, HLS, and generative approaches — yet directl
 
 All results are public, reproducible, and automatically summarized below.
 
+<!-- TOURNAMENT_REPORT_START -->
+
+## Tournament Results
+
+*Last updated: 2026-05-27 13:48 UTC*
+
+### Architecture Test Compliance (RISCOF / RV32I)
+
+| Core | HDL | Tests Passed | Tests Failed | Pass Rate |
+|------|-----|--------------|--------------|-----------|
+| verilog | Verilog | 38 | 0 | 100.0% |
+
+### FPGA Synthesis (Trenz Tec0117 / GW1NR-9)
+
+| Core | Logic Cells | Registers | Max Freq (MHz) | Bitstream |
+|------|-------------|-----------|----------------|-----------|
+| verilog | 4617 | 624 | 26.91 | yes |
+
+### Efficiency Ranking (lower logic cell count is better)
+
+1. **verilog** — 4617 logic cells, 26.91 MHz
+
+<!-- TOURNAMENT_REPORT_END -->
+
 ## Quick start
 
 ```bash
@@ -65,30 +89,6 @@ See `cores/_template/README.md` for details.
 | Arch tests | RISCOF + sail_cSim reference |
 | FPGA | Trenz Tec0117 (GW1NR-9) |
 | Demo bitstream | `led_binary_counter.s` |
-
----
-
-<!-- TOURNAMENT_REPORT_START -->
-
-## Tournament Results
-
-*Last updated: 2026-05-27 08:09 UTC*
-
-### Architecture Test Compliance (RISCOF / RV32I)
-
-| Core | HDL | Architecture | Tests Passed | Tests Failed | Pass Rate |
-|------|-----|--------------|--------------|--------------|-----------|
-| verilog | Verilog | plh | 0 | 0 | 0.0% |
-
-### FPGA Synthesis (Trenz Tec0117 / GW1NR-9)
-
-| Core | Logic Cells | Registers | Max Freq (MHz) | Bitstream |
-|------|-------------|-----------|----------------|-----------|
-| verilog | - | - | - | no |
-
-<!-- TOURNAMENT_REPORT_END -->
-
----
 
 ## Toolchain setup
 

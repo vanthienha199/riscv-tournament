@@ -20,8 +20,9 @@ run_core_tests() {
     --suite ./riscv-arch-test/riscv-test-suite/rv32i_m/I \
     --env ./riscv-arch-test/riscv-test-suite/env \
     --no-browser 2>&1 | tee "$ROOT/results/$core/riscof_run.log" || true
-  riscof testlist --config ./config.ini 2>/dev/null | tee "$ROOT/results/$core/riscof_summary.txt" || \
-    tail -30 "$ROOT/results/$core/riscof_run.log" > "$ROOT/results/$core/riscof_summary.txt"
+  # Prefer full run log for reporting (testlist output can be truncated).
+  sed 's/\x1b\[[0-9;]*m//g' "$ROOT/results/$core/riscof_run.log" \
+    > "$ROOT/results/$core/riscof_summary.txt"
 }
 
 if [ "$CORE" = "all" ]; then
