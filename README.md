@@ -71,7 +71,7 @@ rv_tournament/
 
 1. Copy the template: `cp -r cores/_template cores/myhdl`
 2. Edit `cores/myhdl/core.yaml` (HDL name, simulator, description)
-3. Implement the same microarchitecture under `cores/myhdl/rtl/` (keep similar file separation)
+3. Implement the same microarchitecture under `cores/myhdl/rtl/`
 4. Ensure `make -C cores/myhdl PROGRAM=hello_world.s sim` passes
 5. Regenerate plugins: `python3 scripts/generate_riscof_plugins.py --core myhdl`
 6. Run: `make test CORE=myhdl && make synth CORE=myhdl`
