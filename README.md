@@ -10,13 +10,13 @@ All results are public, reproducible, and automatically summarized below.
 
 ## Tournament Results
 
-*Last updated: 2026-05-27 13:48 UTC*
+*Last updated: 2026-05-29 09:21 UTC*
 
 ### Architecture Test Compliance (RISCOF / RV32I)
 
 | Core | HDL | Tests Passed | Tests Failed | Pass Rate |
 |------|-----|--------------|--------------|-----------|
-| verilog | Verilog | 38 | 0 | 100.0% |
+| verilog | Verilog | - | - | - |
 
 ### FPGA Synthesis (Trenz Tec0117 / GW1NR-9)
 
@@ -105,7 +105,7 @@ sudo apt install -y gcc-riscv64-unknown-elf binutils-riscv64-unknown-elf
 
 # OSS CAD Suite (iverilog, yosys, nextpnr-himbaechel, gowin_pack)
 # Download from https://github.com/YosysHQ/oss-cad-suite/releases
-wget https://github.com/YosysHQ/oss-cad-suite/releases/download/2025-01-27/oss-cad-suite-linux-x64-20250127.tgz
+wget https://github.com/YosysHQ/oss-cad-suite-build/releases/download/2026-05-29/oss-cad-suite-linux-x64-20260529.tgz
 tar xzf oss-cad-suite-linux-x64-*.tgz
 echo 'source ~/oss-cad-suite/environment' >> ~/.bashrc
 source ~/oss-cad-suite/environment
