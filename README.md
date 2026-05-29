@@ -20,9 +20,9 @@ All results are public, reproducible, and automatically summarized below.
 
 ### FPGA Synthesis (Trenz Tec0117 / GW1NR-9)
 
-| Core | Logic Cells | Registers | Max Freq (MHz) | Bitstream |
-|------|-------------|-----------|----------------|-----------|
-| verilog | 4617 | 624 | 26.91 | yes |
+| Core | Logic Cells | Registers | RAM16SDP4 | Max Freq (MHz) | Bitstream |
+|------|-------------|-----------|-----------|----------------|-----------|
+| verilog | 4617 | 624 | 170 | 26.91 | yes |
 
 ### Efficiency Ranking (lower logic cell count is better)
 

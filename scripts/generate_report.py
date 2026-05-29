@@ -111,10 +111,12 @@ def parse_pnr_report(core_name):
                 max_freq = round(v["achieved"], 2)
     lut_used = util.get("LUT4", {}).get("used")
     dff_used = util.get("DFF", {}).get("used")
+    ram_used = util.get("RAM16SDP4", {}).get("used")
     return {
         "logic_cells": lut_used,
         "registers": dff_used,
         "max_freq_mhz": max_freq,
+        "ram_blocks": ram_used
     }
 
 
@@ -178,8 +180,8 @@ def build_report():
         "",
         "### FPGA Synthesis (Trenz Tec0117 / GW1NR-9)",
         "",
-        "| Core | Logic Cells | Registers | Max Freq (MHz) | Bitstream |",
-        "|------|-------------|-----------|----------------|-----------|",
+        "| Core | Logic Cells | Registers | RAM16SDP4 | Max Freq (MHz) | Bitstream |",
+        "|------|-------------|-----------|-----------|----------------|-----------|",
     ]
 
     for core, meta, pnr, yosys in synth_rows:
@@ -188,12 +190,12 @@ def build_report():
         if pnr:
             lines.append(
                 f"| {core} | {pnr.get('logic_cells', '-')} | {pnr.get('registers', '-')} | "
-                f"{pnr.get('max_freq_mhz', '-')} | {has_bit} |"
+                f"{pnr.get('ram_blocks', '-')} | {pnr.get('max_freq_mhz', '-')} | {has_bit} |"
             )
         elif yosys:
-            lines.append(f"| {core} | {yosys.get('cells', '-')} | - | - | {has_bit} |")
+            lines.append(f"| {core} | {yosys.get('cells', '-')} | - | - | - | {has_bit} |")
         else:
-            lines.append(f"| {core} | - | - | - | {has_bit} |")
+            lines.append(f"| {core} | - | - | - | - | {has_bit} |")
 
     # Efficiency ranking
     ranked = []
