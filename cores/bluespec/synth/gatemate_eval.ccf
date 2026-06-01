@@ -1,0 +1,14 @@
+// Cologne Chip GateMate Evaluation Board (CCGM1A1)
+// 10 MHz clock on IO_SB_A8; SW3 on IO_EB_B0; LEDs D1-D8 on IO_EB_B1-B8 (active-low).
+// JP4 must be closed to route the onboard LEDs to GPIO bank EB.
+
+Pin_in  "CLK"  Loc = "IO_SB_A8" | SCHMITT_TRIGGER=true;
+Pin_in  "RST_N"  Loc = "IO_EB_B0";
+Pin_out "led[0]" Loc = "IO_EB_B1";
+Pin_out "led[1]" Loc = "IO_EB_B2";
+Pin_out "led[2]" Loc = "IO_EB_B3";
+Pin_out "led[3]" Loc = "IO_EB_B4";
+Pin_out "led[4]" Loc = "IO_EB_B5";
+Pin_out "led[5]" Loc = "IO_EB_B6";
+Pin_out "led[6]" Loc = "IO_EB_B7";
+Pin_out "led[7]" Loc = "IO_EB_B8";

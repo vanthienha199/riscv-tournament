@@ -10,23 +10,26 @@ All results are public, reproducible, and automatically summarized below.
 
 ## Tournament Results
 
-*Last updated: 2026-06-01 13:56 UTC*
+*Last updated: 2026-06-01 16:08 UTC*
 
 ### Architecture Test Compliance (RISCOF / RV32I)
 
 | Core | HDL | Tests Passed | Tests Failed | Pass Rate |
 |------|-----|--------------|--------------|-----------|
-| verilog | Verilog | 38 | 0 | 100.0% |
+| bluespec | Bluespec SystemVerilog | - | - | - |
+| verilog | Verilog | - | - | - |
 
 ### FPGA Synthesis (Cologne Chip GateMate Evaluation Board / CCGM1A1)
 
 | Core | CPE_LT | CPE_FF | RAM_HALF | Max Freq (MHz) | Bitstream |
 |------|--------|--------|----------|----------------|-----------|
+| bluespec | 5642 | 2697 | 4 | 15.59 | yes |
 | verilog | 11632 | 9234 | 3 | 17.29 | yes |
 
 ### Efficiency Ranking (lower CPE_LT count is better)
 
-1. **verilog** — 11632 CPE_LT, 17.29 MHz
+1. **bluespec** — 5642 CPE_LT, 15.59 MHz
+2. **verilog** — 11632 CPE_LT, 17.29 MHz
 
 <!-- TOURNAMENT_REPORT_END -->
 
