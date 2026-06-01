@@ -29,7 +29,7 @@ $(info $(GREEN)Icarus Verilog found$(RESET))
 
 YOSYS := $(shell which yosys 2>/dev/null)
 NEXTPNR_HIMBAECHEL := $(shell which nextpnr-himbaechel 2>/dev/null)
-GOWIN_PACK := $(shell which gowin_pack 2>/dev/null)
+GMPACK := $(shell which gmpack 2>/dev/null)
 
 RED   = $(shell printf "\033[31m")
 GREEN = $(shell printf "\033[32m")

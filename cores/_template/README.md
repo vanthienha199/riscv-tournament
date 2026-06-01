@@ -9,7 +9,7 @@ This template is intentionally minimal — no HDL sources. Use any language or f
 ### FPGA top (synthesis)
 
 Expose at minimum: `clk`, `btn`, `led1` … `led8`  
-Pin constraints: `synth/tec0117.cst` (Trenz Tec0117 / GW1NR-9)
+Pin constraints: `synth/gatemate_eval.ccf` (Cologne Chip GateMate Evaluation Board / CCGM1A1)
 
 ### Simulation (RISCOF)
 

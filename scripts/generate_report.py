@@ -93,7 +93,7 @@ def parse_riscof_summary(core_name):
     return best
 
 
-def parse_pnr_report(core_name):
+def parse_pnr_report(core_name, meta=None):
     report = os.path.join(CORES, core_name, "build", "synth", "pnr_report.json")
     if not os.path.isfile(report):
         return None
@@ -109,11 +109,17 @@ def parse_pnr_report(core_name):
         for v in fmax.values():
             if isinstance(v, dict) and "achieved" in v:
                 max_freq = round(v["achieved"], 2)
-    lut_used = util.get("LUT4", {}).get("used")
-    dff_used = util.get("DFF", {}).get("used")
-    ram_used = util.get("RAM16SDP4", {}).get("used")
+    target = (meta or {}).get("synth_target", "")
+    if target == "gatemate_eval":
+        logic_used = util.get("CPE_LT", {}).get("used")
+        dff_used = util.get("CPE_FF", {}).get("used")
+        ram_used = util.get("RAM_HALF", {}).get("used")
+    else:
+        logic_used = util.get("LUT4", {}).get("used") or util.get("CPE", {}).get("used")
+        dff_used = util.get("DFF", {}).get("used") or util.get("FF", {}).get("used")
+        ram_used = util.get("RAM16SDP4", {}).get("used") or util.get("BRAM", {}).get("used")
     return {
-        "logic_cells": lut_used,
+        "logic_cells": logic_used,
         "registers": dff_used,
         "max_freq_mhz": max_freq,
         "ram_blocks": ram_used
@@ -172,20 +178,20 @@ def build_report():
                 f"| {core} | {meta.get('hdl', '-')} | - | - | - |"
             )
 
-        pnr = parse_pnr_report(core)
+        pnr = parse_pnr_report(core, meta)
         yosys = parse_yosys_stats(core)
         synth_rows.append((core, meta, pnr, yosys))
 
     lines += [
         "",
-        "### FPGA Synthesis (Trenz Tec0117 / GW1NR-9)",
+        "### FPGA Synthesis (Cologne Chip GateMate Evaluation Board / CCGM1A1)",
         "",
-        "| Core | Logic Cells | Registers | RAM16SDP4 | Max Freq (MHz) | Bitstream |",
-        "|------|-------------|-----------|-----------|----------------|-----------|",
+        "| Core | CPE_LT | CPE_FF | RAM_HALF | Max Freq (MHz) | Bitstream |",
+        "|------|--------|--------|----------|----------------|-----------|",
     ]
 
     for core, meta, pnr, yosys in synth_rows:
-        bitstream = os.path.join(CORES, core, "build", "synth", "pack.fs")
+        bitstream = os.path.join(CORES, core, "build", "synth", "pack.bit")
         has_bit = "yes" if os.path.isfile(bitstream) else "no"
         if pnr:
             lines.append(
@@ -210,12 +216,12 @@ def build_report():
         ranked.sort(key=lambda x: x[1])
         lines += [
             "",
-            "### Efficiency Ranking (lower logic cell count is better)",
+            "### Efficiency Ranking (lower CPE_LT count is better)",
             "",
         ]
         for i, (core, cells, fmax) in enumerate(ranked, 1):
             fmax_s = f", {fmax} MHz" if fmax else ""
-            lines.append(f"{i}. **{core}** — {cells} logic cells{fmax_s}")
+            lines.append(f"{i}. **{core}** — {cells} CPE_LT{fmax_s}")
 
     lines += ["", MARKER_END, ""]
     return "\n".join(lines)

@@ -41,7 +41,9 @@ PROGRAM_ELF = $(PROGRAM_DIR)/$(NAME)
 
 SIM_DIR   = $(BUILD_DIR)/sim
 SYNTH_DIR = $(BUILD_DIR)/synth
-SYNTH_CST = ./synth/tec0117.cst
+SYNTH_CCF    = ./synth/gatemate_eval.ccf
+SYNTH_DEVICE = CCGM1A1
+OFL_BOARD    = gatemate_evb_jtag
 
 IVERILOG_FLAGS = -g2012 -DSIMULATION $(RTL_INC)
 VVP            = vvp
@@ -91,15 +93,15 @@ prep_synth: program
 	@echo "$(GREEN)Bundled Verilog for synthesis$(RESET)"
 
 synth: prep_synth
-	@yosys -p 'read_verilog -DSYNTHESIS -I$(abspath $(RTL_DIR)/include) $(SYNTH_DIR)/bundle.v; hierarchy -top rv32i_plh; synth_gowin -top rv32i_plh -json $(SYNTH_DIR)/bundle.json' 2>&1 | tee $(SYNTH_DIR)/yosys.log
-	@nextpnr-himbaechel --json $(SYNTH_DIR)/bundle.json --write $(SYNTH_DIR)/pnrbundle.json \
-		--device 'GW1NR-LV9QN88C6/I5' --vopt family='GW1N-9' --vopt cst=$(SYNTH_CST) \
-		--log $(SYNTH_DIR)/pnr.log --report $(SYNTH_DIR)/pnr_report.json
-	@gowin_pack -d 'GW1NR-LV9QN88C6/I5' -o $(SYNTH_DIR)/pack.fs $(SYNTH_DIR)/pnrbundle.json
+	@yosys -p 'read_verilog -DSYNTHESIS -I$(abspath $(RTL_DIR)/include) $(SYNTH_DIR)/bundle.v; hierarchy -top rv32i_plh; synth_gatemate -top rv32i_plh -luttree -nomx8 -json $(SYNTH_DIR)/bundle.json' 2>&1 | tee $(SYNTH_DIR)/yosys.log
+	@nextpnr-himbaechel --json $(SYNTH_DIR)/bundle.json \
+		--device $(SYNTH_DEVICE) -o ccf=$(SYNTH_CCF) -o out=$(SYNTH_DIR)/impl.txt \
+		--router router2 --log $(SYNTH_DIR)/pnr.log --report $(SYNTH_DIR)/pnr_report.json
+	@gmpack $(SYNTH_DIR)/impl.txt $(SYNTH_DIR)/pack.bit
 	@echo "$(GREEN)Synthesis and P&R complete$(RESET)"
 
 bitstream: synth
-	@test -n "$$SKIP_PROGRAM_FPGA" || openFPGALoader -b tec0117 $(SYNTH_DIR)/pack.fs
+	@test -n "$$SKIP_PROGRAM_FPGA" || openFPGALoader -b $(OFL_BOARD) $(SYNTH_DIR)/pack.bit
 
 clean:
 	rm -rf $(BUILD_DIR)

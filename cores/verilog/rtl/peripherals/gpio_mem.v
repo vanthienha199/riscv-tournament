@@ -27,6 +27,16 @@ module gpio_mem (
     RD <= regs[word_index];
   end
 
+`ifdef SYNTHESIS
+  assign led1 = ~regs[0][0];
+  assign led2 = ~regs[0][1];
+  assign led3 = ~regs[0][2];
+  assign led4 = ~regs[0][3];
+  assign led5 = ~regs[0][4];
+  assign led6 = ~regs[0][5];
+  assign led7 = ~regs[0][6];
+  assign led8 = ~regs[0][7];
+`else
   assign led1 = regs[0][0];
   assign led2 = regs[0][1];
   assign led3 = regs[0][2];
@@ -35,5 +45,6 @@ module gpio_mem (
   assign led6 = regs[0][5];
   assign led7 = regs[0][6];
   assign led8 = regs[0][7];
+`endif
 
 endmodule

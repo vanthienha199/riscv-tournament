@@ -9,7 +9,7 @@ help:
 	@echo ""
 	@echo "  make setup          Install deps and clone riscv-arch-test"
 	@echo "  make test           Run RISCOF arch tests for all cores"
-	@echo "  make synth          Synthesize all cores for Tec0117"
+	@echo "  make synth          Synthesize all cores for GateMate eval board"
 	@echo "  make all            test + synth + report"
 	@echo "  make report         Regenerate README results section"
 	@echo "  make sim CORE=verilog PROGRAM=hello_world.s"
