@@ -8,7 +8,7 @@ module instruction_memory #(
   output wire [31:0] RD
 );
 
-  localparam integer WORD_IDX_MSB = $clog2(IMEM_SIZE);
+  localparam integer WORD_IDX_MSB = $clog2(IMEM_SIZE) + 2;
 
   reg [31:0] imem [0:IMEM_SIZE-1];
 
@@ -16,6 +16,6 @@ module instruction_memory #(
     $readmemh(TEXT_SEGMENT, imem);
   end
 
-  assign RD = imem[A[WORD_IDX_MSB+1:2]];
+  assign RD = imem[A[WORD_IDX_MSB:2]];
 
 endmodule

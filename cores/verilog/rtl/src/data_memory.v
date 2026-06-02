@@ -15,7 +15,7 @@ module data_memory #(
   `endif
 );
 
-  localparam integer IDX_MSB = `log2ceil(DMEM_SIZE) - 1;
+  localparam integer IDX_MSB = $clog2(DMEM_SIZE) + 2;
 
   reg [31:0] dmem [0:DMEM_SIZE-1];
 
