@@ -87,6 +87,7 @@ sim: program
 	@echo "$(GREEN)Simulation finished$(RESET)"
 
 prep_synth: program
+	@while [ $$(wc -l < $(TEXT_FILE)) -lt $(TEXT_SEGMENT_SYNTH_SIZE) ]; do echo 00000000 >> $(TEXT_FILE); done
 	@cat $(RTL_DIR)/include/riscv_pkg.vh $(wildcard $(RTL_DIR)/src/*.v) $(wildcard $(RTL_DIR)/peripherals/*.v) > $(SYNTH_DIR)/bundle.v
 	@sed -i 's/parameter IMEM_SIZE    = 256/parameter IMEM_SIZE    = $(TEXT_SEGMENT_SYNTH_SIZE)/g' $(SYNTH_DIR)/bundle.v
 	@sed -i 's/parameter DMEM_SIZE    = 256/parameter DMEM_SIZE    = $(DATA_SEGMENT_SYNTH_SIZE)/g' $(SYNTH_DIR)/bundle.v

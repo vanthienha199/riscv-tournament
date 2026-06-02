@@ -10,22 +10,23 @@ scratch:
 
 .section .text
 _start:
-	li x7, 0x20000000   /* LED MMIO */
-	li x8, 0x10000000   /* data RAM */
-	li x6, 0            /* counter */
+	li x7, 0x20000000   /* LED MMIO (x7 / t2 — do not use as temp) */
+	li x8, 0x10000000   /* data RAM (x8 / s0 — do not use as temp) */
+	li x6, 0            /* ISA-exercise scratch */
+	li x27, 0           /* LED counter in s11 (bit 0..; visible on GPIO [27:20]) */
 
 loop:
-	/* R-type */
-	add  t0, x6, x6
-	sub  t1, t0, x6
-	and  t2, t0, t1
-	or   t3, t0, t1
-	xor  t4, t0, t1
-	sll  t5, t0, x6
-	srl  t6, t0, x6
-	sra  a0, t0, x6
-	slt  a1, x6, t0
-	sltu a2, x6, t0
+	/* R-type (x9–x15: avoid t1/t2/s0 aliases on x6/x7/x8) */
+	add  x9, x6, x6
+	sub  x10, x9, x6
+	and  x11, x9, x10
+	or   x12, x9, x10
+	xor  x13, x9, x10
+	sll  x14, x9, x6
+	srl  x15, x9, x6
+	sra  a0, x9, x6
+	slt  a1, x6, x9
+	sltu a2, x6, x9
 
 	/* I-type immediate */
 	addi a3, x6, 3
@@ -33,7 +34,7 @@ loop:
 	ori  a5, a3, 0x01
 	xori a6, a3, 0xff
 	slli a7, a3, 1
-	srli s0, a3, 1
+	srli x18, a3, 1
 	srai s1, a3, 1
 	slti s2, a3, 100
 	sltiu s3, a3, 100
@@ -75,14 +76,14 @@ loop:
 	/* Fence (executes as no-op on this core) */
 	fence
 
-	/* Fold every result into the LED value so -Os cannot drop instruction paths */
-	add  x6, x6, t0
-	add  x6, x6, t1
-	add  x6, x6, t2
-	add  x6, x6, t3
-	add  x6, x6, t4
-	add  x6, x6, t5
-	add  x6, x6, t6
+	/* Touch results so -Os cannot drop instruction paths. */
+	add  x6, x6, x9
+	add  x6, x6, x10
+	add  x6, x6, x11
+	add  x6, x6, x12
+	add  x6, x6, x13
+	add  x6, x6, x14
+	add  x6, x6, x15
 	add  x6, x6, a0
 	add  x6, x6, a1
 	add  x6, x6, a2
@@ -91,7 +92,7 @@ loop:
 	add  x6, x6, a5
 	add  x6, x6, a6
 	add  x6, x6, a7
-	add  x6, x6, s0
+	add  x6, x6, x18
 	add  x6, x6, s1
 	add  x6, x6, s2
 	add  x6, x6, s3
@@ -102,8 +103,9 @@ loop:
 	add  x6, x6, s8
 	add  x6, x6, s9
 	add  x6, x6, s10
-	addi x6, x6, 1
-	andi x6, x6, 0xff
-	sw   x6, 0(x7)
+
+	/* One loop iteration per ISA pass; carries into bit 20+ are slow at ~6 MHz. */
+	addi x27, x27, 1
+	sw   x27, 0(x7)
 
 	j loop
