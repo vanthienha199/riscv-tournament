@@ -22,27 +22,29 @@ package TestsMainTest;
         endfunction
 
         Reg#(Bool) dump_sig <- mkReg(False);
-        Reg#(Bool) export_sig <- mkReg(False);
+        Reg#(Bool) export_signature <- mkReg(False);
         Reg#(Bit#(32)) count <- mkReg(0);
         Reg#(Bit#(TLog#(DMEM_SIZE))) address <- mkReg(0);
     
         rule dump_signature if (dump_sig);
             if (address < fromInteger(valueOf(DMEM_SIZE))) begin
                 File sig_file <- $fopen("DUT-bluespec.signature", address == 0 ? "w" : "a");
+                Bool export_sig = export_signature;
                 if (!export_sig && dut.data(address) == 32'h6f5ca309)
-                    export_sig <= True;
+                    export_sig = True;
                 else if (export_sig && dut.data(address) == 32'h6f5ca309) begin
                     $fwrite(sig_file, "%08x\n", dut.data(address));
                     Bit#(3) remain = truncate(count % 4);
                     remain = 4 - remain - 1;
                     for (Bit#(3) i = 0; i < remain; i = i + 1)
                         $fwrite(sig_file, "00000000\n");
-                    export_sig <= False;
+                    export_sig = False;
                 end
                 if (export_sig) begin
                     $fwrite(sig_file, "%08x\n", dut.data(address));
                     count <= count + 1;
                 end
+                export_signature <= export_sig;
                 $fclose(sig_file);
                 address <= address + 1;
             end else begin
