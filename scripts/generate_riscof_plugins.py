@@ -60,7 +60,7 @@ cd WORK_DIR && \\
   echo "IMEM_SIZE=$$IMEM_SIZE DMEM_SIZE=$$DMEM_SIZE (text words=$$IMEM_WORDS)"; \\
   echo "IMEM_SIZE=$$IMEM_SIZE DMEM_SIZE=$$DMEM_SIZE (text words=$$IMEM_WORDS)" > ./words.txt; \\
   cp {core_dir}/zero.txt ./zero.txt; \\
-  for ((i = 0 ; i < 4096 ; i++)); do echo 0 >> data.txt; done; \\
+  for ((i = 0 ; i < 1024 ; i++)); do echo 0 >> data.txt; done; \\
   cat data.hex.txt >> data.txt; \\
   mv data.txt files/data.txt; \\
   make -C {core_dir} TEXT_SEGMENT_SIM_SIZE=$$IMEM_SIZE DATA_SEGMENT_SIM_SIZE=$$DMEM_SIZE BUILDDIR=$$PWD/build PROGRAM=hello_world.s sim && \\
