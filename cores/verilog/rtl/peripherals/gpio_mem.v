@@ -27,24 +27,25 @@ module gpio_mem (
     RD <= regs[word_index];
   end
 
+  /* LEDs tap GPIO word [27:20]: counter runs from bit 0, visible once carries reach bit 20. */
 `ifdef SYNTHESIS
-  assign led1 = ~regs[0][0];
-  assign led2 = ~regs[0][1];
-  assign led3 = ~regs[0][2];
-  assign led4 = ~regs[0][3];
-  assign led5 = ~regs[0][4];
-  assign led6 = ~regs[0][5];
-  assign led7 = ~regs[0][6];
-  assign led8 = ~regs[0][7];
+  assign led1 = ~regs[0][15];
+  assign led2 = ~regs[0][16];
+  assign led3 = ~regs[0][17];
+  assign led4 = ~regs[0][18];
+  assign led5 = ~regs[0][19];
+  assign led6 = ~regs[0][20];
+  assign led7 = ~regs[0][21];
+  assign led8 = ~regs[0][22];
 `else
-  assign led1 = regs[0][0];
-  assign led2 = regs[0][1];
-  assign led3 = regs[0][2];
-  assign led4 = regs[0][3];
-  assign led5 = regs[0][4];
-  assign led6 = regs[0][5];
-  assign led7 = regs[0][6];
-  assign led8 = regs[0][7];
+  assign led1 = regs[0][15];
+  assign led2 = regs[0][16];
+  assign led3 = regs[0][17];
+  assign led4 = regs[0][18];
+  assign led5 = regs[0][19];
+  assign led6 = regs[0][20];
+  assign led7 = regs[0][21];
+  assign led8 = regs[0][22];
 `endif
 
 endmodule

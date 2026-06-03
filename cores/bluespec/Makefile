@@ -10,9 +10,6 @@ $(error $(RED)Usage: make PROGRAM=<program.s|program.c> [target]$(RESET))
 endif
 endif
 
-TEXT_SEGMENT_START = 0x00000000
-DATA_SEGMENT_START = 0x10000000
-
 BUILD_DIR   = ./build
 SRC_DIR     = ./programs
 FILE_DIR    = ./files
@@ -66,7 +63,7 @@ else
 $(error Only .s assembly programs are supported in the template Makefile)
 endif
 
-TOP_MODULE=mkRV32I_PLH
+TOP_MODULE=mkTop
 TESTBENCH_MODULE=mkTestbench
 IGNORE_MODULES=mkTestbench mkTestsMainTest
 MAIN_MODULE=RV32I_PLH
@@ -142,11 +139,19 @@ BSV_VERILOG_MODULES := $(filter-out \
 IMEM_FILE := ./files/text.txt
 DMEM_FILE := ./files/data.txt
 
+TEXT_SEGMENT_START      = 0x00000000
+TEXT_SEGMENT_SIM_SIZE   = 8192
+TEXT_SEGMENT_SYNTH_SIZE = 1024
+DATA_SEGMENT_START      = 0x10000000
+DATA_SEGMENT_SIM_SIZE   = 65540
+DATA_SEGMENT_SYNTH_SIZE = 256
+
 include $(BSV_TOOLS)/scripts/rules.mk
 
 prep_synth: program
+	@while [ $$(wc -l < $(TEXT_FILE)) -lt $(TEXT_SEGMENT_SYNTH_SIZE) ]; do echo 00000000 >> $(TEXT_FILE); done
 	mkdir -p $(SYNTH_DIR)
-	make compile_top SIM_TYPE=VERILOG CLI_FLAGS='-D "IMEM_SIZE=1024" -D "DMEM_SIZE=512"'
+	make compile_top SIM_TYPE=VERILOG CLI_FLAGS='-D "IMEM_SIZE=$(TEXT_SEGMENT_SYNTH_SIZE)" -D "DMEM_SIZE=$(DATA_SEGMENT_SYNTH_SIZE)"'
 
 synth: prep_synth
 	@yosys -p 'read_verilog -defer -DSYNTHESIS $(BSV_VERILOG_MODULES) $(BUILDDIR)/verilog/$(TOP_MODULE).v; chparam -set imem_file "./files/text.txt" $(TOP_MODULE); chparam -set dmem_file "./files/data.txt" $(TOP_MODULE); hierarchy -top $(TOP_MODULE); synth_gatemate -luttree -nomx8 -top $(TOP_MODULE) -json $(SYNTH_DIR)/bundle.json' 2>&1 | tee $(SYNTH_DIR)/yosys.log

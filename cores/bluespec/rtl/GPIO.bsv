@@ -29,12 +29,12 @@ module mkGPIO(GPIO#(addr_width));
     endmethod
 
     method Vector#(8, Bool) led();
-        return unpack(truncate(regs.sub(0)));
+        return unpack(regs.sub(0)[27:20]);
         //return unpack(truncate(regs[0]));
     endmethod
 
     method Action btn();
-
+    
     endmethod
 endmodule
 

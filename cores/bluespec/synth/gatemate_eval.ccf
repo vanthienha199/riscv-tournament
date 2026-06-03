@@ -3,7 +3,7 @@
 // JP4 must be closed to route the onboard LEDs to GPIO bank EB.
 
 Pin_in  "CLK"  Loc = "IO_SB_A8" | SCHMITT_TRIGGER=true;
-Pin_in  "RST_N"  Loc = "IO_EB_B0";
+Pin_in  "btn"  Loc = "IO_EB_B0";
 Pin_out "led[0]" Loc = "IO_EB_B1";
 Pin_out "led[1]" Loc = "IO_EB_B2";
 Pin_out "led[2]" Loc = "IO_EB_B3";

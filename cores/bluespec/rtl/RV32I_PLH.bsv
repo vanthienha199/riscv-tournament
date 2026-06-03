@@ -11,12 +11,18 @@ import HazardUnit  :: *;
 
 import Vector :: *;
 
+interface Top;
+    (*always_ready*)
+    method Vector#(8, Bool) led();
+    (*always_ready, enable="btn"*)
+    method Action btn();
+endinterface
+
 interface RV32I_PLH;
     (*always_ready*)
     method Vector#(8, Bool) led();
-    //(*always_ready*)
-    //(*enable="btn"*)
-    //method Action btn();
+    (*always_ready*)
+    method Action btn();
     `ifdef SIMULATION
     (*always_ready*)
     method Bit#(datawidth) registers(Bit#(TLog#(words)) index);
@@ -63,8 +69,18 @@ typedef struct {
     Bit#(WIDTH) pcPlus4;
 } DecodeInfo deriving (Bits, Eq);
 
+(*no_default_reset*)
+module mkTop#(parameter String imem_file, parameter String dmem_file)(Top);
+    Reset usr_rst <- mkGateMateUserReset();
 
-(*synthesize*)
+    (*hide*) let _core <- mkRV32I_PLH(imem_file, dmem_file, reset_by usr_rst);
+    
+    method Vector#(8, Bool) led();
+        return map(\not , _core.led());
+    endmethod
+    method Action btn = _core.btn;
+endmodule
+
 module mkRV32I_PLH#(parameter String imem_file, parameter String dmem_file)(RV32I_PLH);
     Reg#(Bit#(WIDTH)) reg_PC[2] <- mkCReg(2, 0);
     Reg#(Maybe#(DecodeInfo)) reg_decode <- mkReg(tagged Invalid);
@@ -243,7 +259,7 @@ module mkRV32I_PLH#(parameter String imem_file, parameter String dmem_file)(RV32
     endrule
 
     method led = memory_router.led;
-    //method btn = memory_router.btn;
+    method btn = memory_router.btn;
 
     `ifdef SIMULATION
     method data = memory_router.data;
@@ -258,6 +274,25 @@ module mkRV32I_PLH#(parameter String imem_file, parameter String dmem_file)(RV32
     endmethod
     `endif
 
+endmodule
+
+interface UserReset;
+    interface Reset reset_out;
+endinterface
+
+import "BVI" CC_USR_RSTN =
+module vGateMateUserReset(UserReset);
+    no_reset;
+
+    default_clock no_clock;
+
+    output_reset reset_out(USR_RSTN);
+endmodule
+
+module mkGateMateUserReset(Reset);
+   (* hide *)
+   UserReset _r <- vGateMateUserReset();
+   return _r.reset_out;
 endmodule
 
 endpackage
