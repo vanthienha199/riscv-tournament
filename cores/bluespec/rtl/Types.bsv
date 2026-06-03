@@ -44,7 +44,7 @@ typedef enum {
     Byte = 'b0,
     Halfword = 'b1,
     Word = 'b10
-} DMemAccess deriving (Bits,Eq);
+} DMemAccess deriving (Bits,Eq,FShow);
 
 typedef enum {
     Default = 'b00,
@@ -59,14 +59,14 @@ typedef enum {
     J = 'b011,
     U = 'b100,
     IShift = 'b101
-} ImmSrc deriving (Bits,Eq);
+} ImmSrc deriving (Bits,Eq,FShow);
 
 typedef enum {
     ALU = 'b00,
     Mem = 'b01,
     PCPlus4 = 'b10,
     PCTarget = 'b11
-} ResultSrc deriving (Bits,Eq);
+} ResultSrc deriving (Bits,Eq,FShow);
 
 
 typedef enum {
@@ -80,6 +80,64 @@ typedef enum {
     RShiftA = 1011,
     OR = 1100,
     AND = 1110
-} AluOP deriving (Bits, Eq);
+} AluOP deriving (Bits, Eq,FShow);
+
+
+
+typedef struct {
+    Bool regWrite;
+    ResultSrc resultSrc;
+    Bool signExtEn;
+    DMemAccess memSel;
+} WritebackCtrl deriving (Bits,Eq,FShow);
+
+typedef struct {
+    WritebackCtrl wb;
+    Bool memWrite;
+} MemoryCtrl deriving (Bits, Eq,FShow);
+
+typedef struct {
+    MemoryCtrl m;
+    AluOP aluControl;
+    PCTargetSel pcTargetSel;
+    Bool aluSrc;
+    PCSrc pcSrc;
+} ExecuteCtrl deriving (Bits,Eq,FShow);
+
+typedef struct {
+    WritebackCtrl ctrl;
+    Bit#(WIDTH) aluResult;
+    Bit#(WIDTH) readData;
+    Bit#(REGW) rd;
+    Bit#(WIDTH) pcTarget;
+    Bit#(WIDTH) pcPlus4;
+} WritebackInfo deriving (Bits,Eq);
+
+typedef struct {
+    MemoryCtrl ctrl;
+    Bit#(WIDTH) aluResult;
+    Bit#(WIDTH) writeData;
+    Bit#(REGW) rd;
+    Bit#(WIDTH) pcTarget;
+    Bit#(WIDTH) pcPlus4;
+} MemoryInfo deriving (Bits, Eq);
+
+typedef struct {
+    ExecuteCtrl ctrl;
+    Bit#(WIDTH) rs1Val;
+    Bit#(WIDTH) rs2Val;
+    Bit#(REGW) rd;
+    Bit#(WIDTH) pc;
+    Bit#(REGW) rs1;
+    Bit#(REGW) rs2;
+    Bit#(WIDTH) immExt;
+    Bit#(WIDTH) pcPlus4;
+} ExecuteInfo deriving (Bits, Eq);
+
+typedef struct {
+    Bit#(WIDTH) instr;
+    Bit#(WIDTH) pc;
+    Bit#(WIDTH) pcPlus4;
+} DecodeInfo deriving (Bits, Eq);
 
 endpackage

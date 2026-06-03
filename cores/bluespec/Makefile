@@ -86,15 +86,12 @@ ifeq ($(RUN_TEST),)
 RUN_TEST=TestsMainTest
 endif
 
-IMEM_SIZE=8192
-DMEM_SIZE=65540
-
 # Default flags
-EXTRA_FLAGS=-D "RUN_TEST=$(RUN_TEST)" -D "TESTNAME=mk$(RUN_TEST)"
+EXTRA_FLAGS=-D "RUN_TEST=$(RUN_TEST)" -D "TESTNAME=mk$(RUN_TEST)" -check-assert
 EXTRA_FLAGS+=-show-schedule -D "BSV_TIMESCALE=1ns/1ps" -aggressive-conditions +RTS -Ksize -RTS
-EXTRA_FLAGS+=-keep-inlined-boundaries
+#EXTRA_FLAGS+=-keep-inlined-boundaries
 EXTRA_FLAGS+=-opt-undetermined-vals
-#EXTRA_FLAGS+=-keep-fires 
+EXTRA_FLAGS+=-keep-fires 
 #EXTRA_FLAGS+=-remove-dollar
 #EXTRA_FLAGS+=-remove-empty-rules
 #EXTRA_FLAGS+=-remove-false-rules
@@ -104,6 +101,7 @@ EXTRA_FLAGS+=-opt-undetermined-vals
 #EXTRA_FLAGS+=-sat-stp
 #EXTRA_FLAGS+=-sat-yices
 #EXTRA_FLAGS+=-split-if
+CLI_FLAGS=-D "IMEM_SIZE=$(TEXT_SEGMENT_SIM_SIZE)" -D "DMEM_SIZE=$(DATA_SEGMENT_SIM_SIZE)" -D "SIMULATION=TRUE"
 EXTRA_FLAGS+=$(CLI_FLAGS)
 
 ###
@@ -122,7 +120,7 @@ CXX_NO_OPT := 1
 # EXTRA_FLAGS+=-D "BENCHMARK=1"
 
 # Flags added to simulator execution
-RUN_FLAGS+=-V dump.vcd
+#RUN_FLAGS+=-V dump.vcd
 
 clean:
 	rm -rf $(BUILD_DIR) $(FILE_DIR)
@@ -163,3 +161,5 @@ synth: prep_synth
 
 bitstream: synth
 	@test -n "$$SKIP_PROGRAM_FPGA" || openFPGALoader -b $(OFL_BOARD) $(SYNTH_DIR)/pack.bit
+
+sim: program

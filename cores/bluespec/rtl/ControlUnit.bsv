@@ -2,26 +2,6 @@ package ControlUnit;
 
 import Types :: *;
 
-typedef struct {
-    Bool regWrite;
-    ResultSrc resultSrc;
-    Bool signExtEn;
-    DMemAccess memSel;
-} WritebackCtrl deriving (Bits,Eq);
-
-typedef struct {
-    WritebackCtrl wb;
-    Bool memWrite;
-} MemoryCtrl deriving (Bits, Eq);
-
-typedef struct {
-    MemoryCtrl m;
-    AluOP aluControl;
-    PCTargetSel pcTargetSel;
-    Bool aluSrc;
-    PCSrc pcSrc;
-} ExecuteCtrl deriving (Bits,Eq);
-
 interface ControlUnit;
     method Tuple2#(ExecuteCtrl, ImmSrc) handle(Opcode op, Bit#(3) func3, Bit#(1) func75);
 endinterface
@@ -46,7 +26,7 @@ module mkControlUnit(ControlUnit);
     endfunction
 
     function PCSrc decPCSrc(Opcode op, Bit#(3) func3);
-        if (op == JType) return Jump;
+        if (op == JType || op == JALR) return Jump;
         else if (op == BType && (func3 == 'b000 || func3 == 'b101 || func3 == 'b111)) return BranchZero;
         else if (op == BType) return BranchLess;
         else return None; 

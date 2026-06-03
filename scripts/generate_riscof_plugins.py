@@ -47,6 +47,26 @@ cd WORK_DIR && \\
   tr 'A-F' 'a-f' < DUT-{core_name}.signature > DUT-{core_name}.signature.tmp && \\
   mv DUT-{core_name}.signature.tmp DUT-{core_name}.signature
 """.strip()
+    if simulator == "bluesim":
+        return f"""
+cd WORK_DIR && \\
+  IMEM_WORDS=$$(wc -l < ./files/text.txt); \\
+  IMEM_SIZE=1; \\
+  while [ $$IMEM_SIZE -lt $$IMEM_WORDS ]; do IMEM_SIZE=$$((IMEM_SIZE * 2)); done; \\
+  if [ $$IMEM_SIZE -lt 8192 ]; then IMEM_SIZE=8192; fi; \\
+  if [ $$IMEM_SIZE -lt 4 ]; then IMEM_SIZE=4; fi; \\
+  while [ $$(wc -l < ./files/text.txt) -lt $$IMEM_SIZE ]; do echo 00000000 >> ./files/text.txt; done; \\
+  DMEM_SIZE={riscof_dmem_size}; \\
+  echo "IMEM_SIZE=$$IMEM_SIZE DMEM_SIZE=$$DMEM_SIZE (text words=$$IMEM_WORDS)"; \\
+  echo "IMEM_SIZE=$$IMEM_SIZE DMEM_SIZE=$$DMEM_SIZE (text words=$$IMEM_WORDS)" > ./words.txt; \\
+  cp {core_dir}/zero.txt ./zero.txt; \\
+  for ((i = 0 ; i < 4096 ; i++)); do echo 0 >> data.txt; done; \\
+  cat data.hex.txt >> data.txt; \\
+  mv data.txt files/data.txt; \\
+  make -C {core_dir} TEXT_SEGMENT_SIM_SIZE=$$IMEM_SIZE DATA_SEGMENT_SIM_SIZE=$$DMEM_SIZE BUILDDIR=$$PWD/build PROGRAM=hello_world.s sim && \\
+  tr 'A-F' 'a-f' < DUT-{core_name}.signature > DUT-{core_name}.signature.tmp && \\
+  mv DUT-{core_name}.signature.tmp DUT-{core_name}.signature
+""".strip()
     raise SystemExit(f"Unsupported simulator: {simulator}")
 
 

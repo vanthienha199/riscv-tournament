@@ -14,7 +14,6 @@ interface DMem#(numeric type dmem_size);
 endinterface
 
 module mkDMem#(String data_file)(DMem#(dmem_size)) provisos (Add#(__a, TLog#(dmem_size), 30));
-    //Vector#(dmem_size, Reg#(Bit#(32))) mem <- replicateM(mkReg(0));
     RegFile#(Bit#(TLog#(dmem_size)), Bit#(32)) mem <- mkRegFileLoad(data_file, 0, fromInteger(valueOf(dmem_size)-1));
 
     method ActionValue#(Bit#(32)) access(Bit#(32) addr, DMemAccess sel, Maybe#(Bit#(32)) data);
@@ -48,7 +47,6 @@ module mkDMem#(String data_file)(DMem#(dmem_size)) provisos (Add#(__a, TLog#(dme
             end
         end
 
-        //mem[address] <= pack(value);
         mem.upd(address, pack(value));
 
         return pack(ret);
@@ -56,7 +54,6 @@ module mkDMem#(String data_file)(DMem#(dmem_size)) provisos (Add#(__a, TLog#(dme
     
     `ifdef SIMULATION
     method Bit#(32) data(Bit#(TLog#(dmem_size)) index);
-        //return mem[index];
         return mem.sub(index);
     endmethod
     `endif

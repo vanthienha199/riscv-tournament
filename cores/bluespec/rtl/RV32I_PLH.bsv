@@ -1,6 +1,5 @@
 package RV32I_PLH;
 
-// Add imports
 import IMem :: *;
 import RegisterFile :: *;
 import MemoryRouter :: *;
@@ -8,6 +7,7 @@ import ALU :: *;
 import ControlUnit :: *;
 import Types :: *;
 import HazardUnit  :: *;
+import PipelineReg :: *;
 
 import Vector :: *;
 
@@ -25,49 +25,13 @@ interface RV32I_PLH;
     method Action btn();
     `ifdef SIMULATION
     (*always_ready*)
-    method Bit#(datawidth) registers(Bit#(TLog#(words)) index);
+    method Bit#(WIDTH) registers(Bit#(TLog#(32)) index);
     method Bool g_ecall();
     (*always_ready*)
     method Bit#(32) data(Bit#(TLog#(DMEM_SIZE)) address);
-    method Action start();
+    method Action setActive(Bool active);
     `endif
 endinterface
-
-typedef struct {
-    WritebackCtrl ctrl;
-    Bit#(WIDTH) aluResult;
-    Bit#(WIDTH) readData;
-    Bit#(REGW) rd;
-    Bit#(WIDTH) pcTarget;
-    Bit#(WIDTH) pcPlus4;
-} WritebackInfo deriving (Bits,Eq);
-
-typedef struct {
-    MemoryCtrl ctrl;
-    Bit#(WIDTH) aluResult;
-    Bit#(WIDTH) writeData;
-    Bit#(REGW) rd;
-    Bit#(WIDTH) pcTarget;
-    Bit#(WIDTH) pcPlus4;
-} MemoryInfo deriving (Bits, Eq);
-
-typedef struct {
-    ExecuteCtrl ctrl;
-    Bit#(WIDTH) rs1Val;
-    Bit#(WIDTH) rs2Val;
-    Bit#(REGW) rd;
-    Bit#(WIDTH) pc;
-    Bit#(REGW) rs1;
-    Bit#(REGW) rs2;
-    Bit#(WIDTH) immExt;
-    Bit#(WIDTH) pcPlus4;
-} ExecuteInfo deriving (Bits, Eq);
-
-typedef struct {
-    Bit#(WIDTH) instr;
-    Bit#(WIDTH) pc;
-    Bit#(WIDTH) pcPlus4;
-} DecodeInfo deriving (Bits, Eq);
 
 (*no_default_reset*)
 module mkTop#(parameter String imem_file, parameter String dmem_file)(Top);
@@ -82,56 +46,72 @@ module mkTop#(parameter String imem_file, parameter String dmem_file)(Top);
 endmodule
 
 module mkRV32I_PLH#(parameter String imem_file, parameter String dmem_file)(RV32I_PLH);
-    Reg#(Bit#(WIDTH)) reg_PC[2] <- mkCReg(2, 0);
-    Reg#(Maybe#(DecodeInfo)) reg_decode <- mkReg(tagged Invalid);
-    Reg#(Maybe#(ExecuteInfo)) reg_execute[2] <- mkCReg(2, tagged Invalid);
-    Reg#(Maybe#(MemoryInfo)) reg_memory <- mkReg(tagged Invalid);
-    Reg#(Maybe#(WritebackInfo)) reg_writeback <- mkReg(tagged Invalid);
+    Wire#(Bool) stallF <- mkBypassWire;
+    Wire#(Bool) stallD <- mkBypassWire;
+    Wire#(Bool) flushD <- mkBypassWire;
+    Wire#(Bool) flushE <- mkBypassWire;
+    Reg#(Bit#(WIDTH)) reg_PC <- mkPipelineReg(stallF, False);
+    Reg#(DecodeInfo) reg_decode <- mkPipelineReg(stallD, flushD);
+    Reg#(ExecuteInfo) reg_execute <- mkPipelineReg(False, flushE);
+    Reg#(MemoryInfo) reg_memory <- mkPipelineReg(False, False);
+    Reg#(WritebackInfo) reg_writeback <- mkPipelineReg(False, False);
 
     IMem#(WIDTH, WIDTH) imem <- mkIMem(valueOf(IMEM_SIZE), imem_file);
     RegisterFile#(32, WIDTH) regfile <- mkRegisterFile();
 
     ControlUnit ctrlUnit <- mkControlUnit;
 
-    HazardUnit hazard <- mkHazardUnit;
+    HazardUnit hazard <- mkHazardUnit(regToReadOnly(reg_decode), regToReadOnly(reg_execute), regToReadOnly(reg_memory), regToReadOnly(reg_writeback));
+
+    (*fire_when_enabled, no_implicit_conditions*)
+    rule setWires;
+        stallF <= hazard.stallF;
+        stallD <= hazard.stallD;
+        flushD <= hazard.flushD;
+        flushE <= hazard.flushE;
+    endrule
 
     `ifdef SIMULATION
-    Reg#(Bool) active <- mkReg(False);
+    Reg#(Bool) activeReg[2] <- mkCReg(2, False);
+    Bool active = activeReg[1];
     `else
     Bool active = True;
     `endif
 
-    rule fetch if (active && !hazard.stallD && !hazard.flushD && !hazard.stallF);
-        reg_decode <= tagged Valid DecodeInfo {
-            instr: imem.read(reg_PC[0]),
-            pc: reg_PC[0],
-            pcPlus4: reg_PC[0] + 4
-        };
-        reg_PC[0] <= reg_PC[0] + 4;
+    Wire#(Bit#(WIDTH)) updatePC <- mkWire;
+    Wire#(Bit#(WIDTH)) newPC <- mkWire;
+
+    rule jumpOrBranch if (active);
+        reg_PC <= updatePC;
+        hazard.jumpOrBranch();
+    endrule
+    
+    (*preempts="jumpOrBranch,nextPC"*)
+    rule nextPC if (active);
+        reg_PC <= reg_PC + 4;
     endrule
 
-    rule flushD if (hazard.flushD);
-        reg_decode <= tagged Invalid;
+    rule fetch if (active);
+        reg_decode <= DecodeInfo {
+            instr: imem.read(reg_PC),
+            pc: reg_PC,
+            pcPlus4: reg_PC + 4
+        };
     endrule
 
     function Bit#(width) duplicate(Bit#(1) i);
         return pack(replicate(i));
     endfunction
 
-    rule flushE if (hazard.flushE);
-        reg_execute[1] <= tagged Invalid;
-    endrule
-
-    rule decode if (reg_decode matches tagged Valid .info);
+    rule decode if (active);
+        let info = reg_decode;
         Bit#(WIDTH) i = info.instr;
         Instr instr = unpack(info.instr);
-        $display("%x", instr);
-        $display(fshow(instr));
         let rs1 = regfile.readA1(instr.rs1);
         let rs2 = regfile.readA1(instr.rs2);
         Bit#(WIDTH) imm = 0;
-
         match {.ctrl,.immSrc} = ctrlUnit.handle(instr.op, instr.func3, instr.func75);
+
         case (immSrc)
             I: imm = signExtend(i[31:20]);
             S: imm = signExtend({i[31:25],i[11:7]});
@@ -141,7 +121,7 @@ module mkRV32I_PLH#(parameter String imem_file, parameter String dmem_file)(RV32
             IShift: imm = zeroExtend(i[24:20]);
         endcase
 
-        reg_execute[0] <= tagged Valid ExecuteInfo {
+        reg_execute <= ExecuteInfo {
             ctrl: ctrl,
             rs1Val: rs1,
             rs2Val: rs2,
@@ -152,33 +132,22 @@ module mkRV32I_PLH#(parameter String imem_file, parameter String dmem_file)(RV32
             pcPlus4: info.pcPlus4,
             immExt: imm
         };
-
-        hazard.decode(instr.rs1, instr.rs2);
     endrule
 
     ALU#(WIDTH) alu <- mkALU;
 
-    Wire#(Bit#(WIDTH)) updatePC <- mkWire;
-
-    rule jumpOrBranch;
-        reg_PC[1] <= updatePC;
-        hazard.jumpOrBranch();
-    endrule
-
     Wire#(Bit#(WIDTH)) resultW <- mkDWire(0);
     Wire#(Bit#(WIDTH)) aluResultM <- mkDWire(0);
 
-    rule execute if (reg_execute[0] matches tagged Valid .info);
+    rule execute if (active);
+        let info = reg_execute;
 
-        match {.forwardA,.forwardB} <- hazard.execute(pack(info.ctrl.m.wb.resultSrc)[0] == 1, info.rd, info.rs1, info.rs2);
-
-        // Todo
-        let opA = case (forwardA)
+        let opA = case (hazard.forwardA)
             None: info.rs1Val;
             Writeback: resultW;
             Memory: aluResultM;
         endcase;
-        let opB = case (forwardB)
+        let opB = case (hazard.forwardB)
             None: info.rs2Val;
             Writeback: resultW;
             Memory: aluResultM;
@@ -199,7 +168,7 @@ module mkRV32I_PLH#(parameter String imem_file, parameter String dmem_file)(RV32
         if (info.ctrl.pcSrc == Jump || (info.ctrl.pcSrc == BranchLess && result.less) || (info.ctrl.pcSrc == BranchZero && result.zero))
             updatePC <= pcTarget;
 
-        reg_memory <= tagged Valid MemoryInfo {
+        reg_memory <= MemoryInfo {
             ctrl: info.ctrl.m,
             aluResult: result.result,
             writeData: opB,
@@ -211,12 +180,13 @@ module mkRV32I_PLH#(parameter String imem_file, parameter String dmem_file)(RV32
 
     MemoryRouter#(DMEM_SIZE) memory_router <- mkMemoryRouter(dmem_file);
 
-    rule memory if (reg_memory matches tagged Valid .info);
+    rule memory if (active);
+        let info = reg_memory;
         let wData = (info.ctrl.memWrite) ? tagged Valid info.writeData : tagged Invalid;
 
         let rData <- memory_router.access(truncate(info.aluResult), info.ctrl.wb.memSel, wData);
 
-        reg_writeback <= tagged Valid WritebackInfo {
+        reg_writeback <= WritebackInfo {
             ctrl: info.ctrl.wb,
             aluResult: info.aluResult,
             readData: rData,
@@ -226,8 +196,6 @@ module mkRV32I_PLH#(parameter String imem_file, parameter String dmem_file)(RV32
         };
 
         aluResultM <= info.aluResult;
-
-        hazard.memory(info.ctrl.wb.regWrite, info.rd);
     endrule
 
     Wire#(Tuple2#(Bit#(REGW), Bit#(WIDTH))) writeRegfile <- mkWire;
@@ -237,7 +205,8 @@ module mkRV32I_PLH#(parameter String imem_file, parameter String dmem_file)(RV32
         regfile.writeA3(addr, data);
     endrule
 
-    rule writeback if (reg_writeback matches tagged Valid .info);
+    rule writeback if (active);
+        let info = reg_writeback;
         let dataSgnExt = case(info.ctrl.memSel)
             Byte: signExtend(info.readData[7:0]);
             Halfword: signExtend(info.readData[15:0]);
@@ -255,7 +224,6 @@ module mkRV32I_PLH#(parameter String imem_file, parameter String dmem_file)(RV32
 
         if (info.ctrl.regWrite && info.rd != 0) writeRegfile <= tuple2(info.rd, result);
 
-        hazard.writeback(info.ctrl.regWrite, info.rd);
     endrule
 
     method led = memory_router.led;
@@ -263,14 +231,14 @@ module mkRV32I_PLH#(parameter String imem_file, parameter String dmem_file)(RV32
 
     `ifdef SIMULATION
     method data = memory_router.data;
-    method Bool g_ecall() if (reg_decode matches tagged Valid .info);
-        Instr instr = unpack(info.instr);
+    method Bool g_ecall();
+        Instr instr = unpack(reg_decode.instr);
         return instr.op == ECALL;
     endmethod
     method registers = regfile.registers;
 
-    method Action start();
-        active <= True;
+    method Action setActive(Bool a);
+        activeReg[0] <= a;
     endmethod
     `endif
 
