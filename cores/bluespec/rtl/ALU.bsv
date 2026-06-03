@@ -34,8 +34,8 @@ module mkALU(ALU#(datawidth)) provisos (Add#(a__, 1, datawidth));
             XOR: result = a ^ b;
             RShift: result = a << b[4:0];
             RShiftA: result = ashift(unpack(a), unpack(b));
-            OR: result = a & b;
-            AND: result = a | b;
+            OR: result = a | b;
+            AND: result = a & b;
         endcase
 
         return ALUResult {
