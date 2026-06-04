@@ -19,7 +19,7 @@ module mkALU(ALU#(datawidth)) provisos (Add#(a__, 1, datawidth));
     endfunction
 
     function Bit#(datawidth) ashift(Int#(datawidth) a, Bit#(datawidth) b);
-        return pack(a << b[4:0]);
+        return pack(a >> b[4:0]);
     endfunction
     
     method ALUResult#(datawidth) exec(AluOP op, Bit#(datawidth) a, Bit#(datawidth) b);
@@ -28,11 +28,11 @@ module mkALU(ALU#(datawidth)) provisos (Add#(a__, 1, datawidth));
         case (op)
             Add: result = a + b;
             Sub: result = a - b;
-            LShift: result = a >> b[4:0];
+            LShift: result = a << b[4:0];
             LT: result = extend(pack(lt));
             LTU: result = extend(pack(lt));
             XOR: result = a ^ b;
-            RShift: result = a << b[4:0];
+            RShift: result = a >> b[4:0];
             RShiftA: result = ashift(unpack(a), unpack(b));
             OR: result = a | b;
             AND: result = a & b;
