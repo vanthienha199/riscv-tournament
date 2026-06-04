@@ -55,7 +55,7 @@ package TestsMainTest;
 
         Stmt s = {
             seq
-                $dumpvars();
+                //$dumpvars();
                 dut.setActive(True);
                 while(True) seq
                     $display("Starting...");

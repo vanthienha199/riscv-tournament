@@ -6,7 +6,7 @@ typedef struct {
     Bit#(width) result;
     Bool zero;
     Bool less;
-} ALUResult#(numeric type width) deriving (Bits, Eq);
+} ALUResult#(numeric type width) deriving (Bits, Eq, FShow);
 
 interface ALU#(numeric type datawidth);
     method ALUResult#(datawidth) exec(AluOP op, Bit#(datawidth) a, Bit#(datawidth) b);
@@ -23,11 +23,12 @@ module mkALU(ALU#(datawidth)) provisos (Add#(a__, 1, datawidth));
     endfunction
     
     method ALUResult#(datawidth) exec(AluOP op, Bit#(datawidth) a, Bit#(datawidth) b);
+        let sum = (pack(op)[0] == 0) ? a + b : a - b;
+        Bool lt = (pack(op)[1] == 1) ? a < b : (a[31] == 1 && b[31] == 0) || (a[31] == 1 && sum[31] == 1) || (b[31] == 0 && sum[31] == 1);
         Bit#(datawidth) result = 0;
-        Bool lt = (pack(op)[1] == 1) ? a < b : ltu(unpack(a), unpack(b));
         case (op)
-            Add: result = a + b;
-            Sub: result = a - b;
+            Add: result = sum;
+            Sub: result = sum;
             LShift: result = a << b[4:0];
             LT: result = extend(pack(lt));
             LTU: result = extend(pack(lt));

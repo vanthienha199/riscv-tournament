@@ -27,8 +27,15 @@ module mkControlUnit(ControlUnit);
 
     function PCSrc decPCSrc(Opcode op, Bit#(3) func3);
         if (op == JType || op == JALR) return Jump;
-        else if (op == BType && (func3 == 'b000 || func3 == 'b101 || func3 == 'b111)) return BranchZero;
-        else if (op == BType) return BranchLess;
+        else if (op == BType)
+            case (func3)
+                'b000: return BranchZero;
+                'b001: return BranchNonZero;
+                'b100: return BranchLess;
+                'b101: return BranchGreaterEqual;
+                'b110: return BranchLess;
+                'b111: return BranchGreaterEqual;
+            endcase
         else return None; 
     endfunction
 

@@ -37,7 +37,9 @@ typedef enum {
     None = 'b00,
     BranchZero = 'b10,
     BranchLess = 'b01,
-    Jump = 'b11
+    Jump = 'b11,
+    BranchNonZero = 'b100,
+    BranchGreaterEqual = 'b101
 } PCSrc deriving (Bits,Eq,FShow);
 
 typedef enum {
@@ -120,7 +122,7 @@ typedef struct {
     Bit#(REGW) rd;
     Bit#(WIDTH) pcTarget;
     Bit#(WIDTH) pcPlus4;
-} MemoryInfo deriving (Bits, Eq);
+} MemoryInfo deriving (Bits, Eq,FShow);
 
 typedef struct {
     ExecuteCtrl ctrl;

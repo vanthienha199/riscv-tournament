@@ -46,8 +46,9 @@ module mkDMem#(String data_file)(DMem#(dmem_size)) provisos (Add#(__a, TLog#(dme
                 end
             end
         end
-
-        mem.upd(address, pack(value));
+        if (data matches tagged Valid .d) begin
+            mem.upd(address, pack(value));
+        end
 
         return pack(ret);
     endmethod

@@ -165,7 +165,12 @@ module mkRV32I_PLH#(parameter String imem_file, parameter String dmem_file)(RV32
 
         pcTarget = pcTarget + info.immExt;
 
-        if (info.ctrl.pcSrc == Jump || (info.ctrl.pcSrc == BranchLess && result.less) || (info.ctrl.pcSrc == BranchZero && result.zero))
+        if (info.ctrl.pcSrc == Jump ||
+(info.ctrl.pcSrc == BranchLess && result.less) ||
+(info.ctrl.pcSrc == BranchZero && result.zero) ||
+            (info.ctrl.pcSrc == BranchNonZero && !result.zero) ||
+            (info.ctrl.pcSrc == BranchGreaterEqual && !result.less)
+        )
             updatePC <= pcTarget;
 
         reg_memory <= MemoryInfo {
@@ -184,7 +189,7 @@ module mkRV32I_PLH#(parameter String imem_file, parameter String dmem_file)(RV32
         let info = reg_memory;
         let wData = (info.ctrl.memWrite) ? tagged Valid info.writeData : tagged Invalid;
 
-        let rData <- memory_router.access(truncate(info.aluResult), info.ctrl.wb.memSel, wData);
+        let rData <- memory_router.access(info.aluResult, info.ctrl.wb.memSel, wData);
 
         reg_writeback <= WritebackInfo {
             ctrl: info.ctrl.wb,
