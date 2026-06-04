@@ -5,6 +5,12 @@ import Reserved :: *;
 typedef `DMEM_SIZE DMEM_SIZE;
 typedef `IMEM_SIZE IMEM_SIZE;
 
+`ifdef SIMULATION
+String zeroFile = "../zero.txt";
+`else
+String zeroFile = "./zero.txt";
+`endif
+
 typedef 32 WIDTH;
 typedef 32 NumRegisters;
 typedef TLog#(NumRegisters) REGW;

@@ -14,7 +14,7 @@ interface GPIO#(numeric type addr_width);
 endinterface
 
 module mkGPIO(GPIO#(addr_width)) provisos (Add#(__a, TSub#(addr_width, 2), 30));
-    RegFile#(Bit#(TSub#(addr_width, 2)), Bit#(32)) regs <- mkRegFileFullLoad("../zero.txt");
+    RegFile#(Bit#(TSub#(addr_width, 2)), Bit#(32)) regs <- mkRegFileFullLoad(zeroFile);
 
     method ActionValue#(Bit#(32)) access(Bit#(addr_width) addr, DMemAccess sel, Maybe#(Bit#(32)) data);
         Bit#(3) bytes = 0;

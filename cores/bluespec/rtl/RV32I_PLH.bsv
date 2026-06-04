@@ -166,8 +166,8 @@ module mkRV32I_PLH#(parameter String imem_file, parameter String dmem_file)(RV32
         pcTarget = pcTarget + info.immExt;
 
         if (info.ctrl.pcSrc == Jump ||
-(info.ctrl.pcSrc == BranchLess && result.less) ||
-(info.ctrl.pcSrc == BranchZero && result.zero) ||
+            (info.ctrl.pcSrc == BranchLess && result.less) ||
+            (info.ctrl.pcSrc == BranchZero && result.zero) ||
             (info.ctrl.pcSrc == BranchNonZero && !result.zero) ||
             (info.ctrl.pcSrc == BranchGreaterEqual && !result.less)
         )

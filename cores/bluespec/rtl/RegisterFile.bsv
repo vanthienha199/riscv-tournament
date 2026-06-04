@@ -1,6 +1,7 @@
 package RegisterFile;
 
 import RegFile :: *;
+import Types :: *;
 
 interface RegisterFile#(numeric type words, numeric type datawidth);
     method Bit#(datawidth) readA1(Bit#(TLog#(words)) addr);
@@ -12,7 +13,7 @@ interface RegisterFile#(numeric type words, numeric type datawidth);
 endinterface
 
 module mkRegisterFile(RegisterFile#(words, datawidth)) provisos (Log#(words, addrwidth));
-    RegFile#(Bit#(addrwidth), Bit#(datawidth)) regfile <- mkRegFileLoad("../zero.txt", 0, fromInteger(valueOf(words) - 1));
+    RegFile#(Bit#(addrwidth), Bit#(datawidth)) regfile <- mkRegFileLoad(zeroFile, 0, fromInteger(valueOf(words) - 1));
     RWire#(Tuple2#(Bit#(addrwidth), Bit#(datawidth))) forward <- mkRWire;
 
     rule update if (forward.wget() matches tagged Valid .tpl);
