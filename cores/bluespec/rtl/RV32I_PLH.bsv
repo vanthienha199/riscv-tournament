@@ -9,6 +9,8 @@ import Types :: *;
 import HazardUnit  :: *;
 import PipelineReg :: *;
 
+import Logging :: *;
+
 import Vector :: *;
 
 interface Top;
@@ -46,6 +48,12 @@ module mkTop#(parameter String imem_file, parameter String dmem_file)(Top);
 endmodule
 
 module mkRV32I_PLH#(parameter String imem_file, parameter String dmem_file)(RV32I_PLH);
+    Logger logF <- mkLogger("fetch");
+    Logger logD <- mkLogger("decode");
+    Logger logE <- mkLogger("execute");
+    Logger logM <- mkLogger("memory");
+    Logger logW <- mkLogger("writeback");
+
     Wire#(Bool) stallF <- mkBypassWire;
     Wire#(Bool) stallD <- mkBypassWire;
     Wire#(Bool) flushD <- mkBypassWire;
@@ -92,11 +100,14 @@ module mkRV32I_PLH#(parameter String imem_file, parameter String dmem_file)(RV32
     endrule
 
     rule fetch if (active);
+        let instr = imem.read(reg_PC);
         reg_decode <= DecodeInfo {
-            instr: imem.read(reg_PC),
+            instr: instr,
             pc: reg_PC,
             pcPlus4: reg_PC + 4
         };
+
+        logF.log(INFO, $format("Fetching instruction from address 0x%x: 0x%x", reg_PC, instr));
     endrule
 
     function Bit#(width) duplicate(Bit#(1) i);
@@ -112,6 +123,11 @@ module mkRV32I_PLH#(parameter String imem_file, parameter String dmem_file)(RV32
         Bit#(WIDTH) imm = 0;
         match {.ctrl,.immSrc} = ctrlUnit.handle(instr.op, instr.func3, instr.func75);
 
+        logD.log(INFO, $format("Decoding instruction 0x%x", info.instr));
+        logD.log(INFO, fshow(instr));
+        logD.log(DEBUG, $format("Control Info: ", fshow(ctrl), fshow(immSrc)));
+        logD.log(TRACE, $format("Register values rs1 0x%x rs2 0x%x", fshow(rs1), fshow(rs2)));
+
         case (immSrc)
             I: imm = signExtend(i[31:20]);
             S: imm = signExtend({i[31:25],i[11:7]});
@@ -120,6 +136,7 @@ module mkRV32I_PLH#(parameter String imem_file, parameter String dmem_file)(RV32
             U: imm = {i[31:12],12'b0};
             IShift: imm = zeroExtend(i[24:20]);
         endcase
+        logD.log(TRACE, $format("Immediate: 0x%x", imm));
 
         reg_execute <= ExecuteInfo {
             ctrl: ctrl,
@@ -152,9 +169,15 @@ module mkRV32I_PLH#(parameter String imem_file, parameter String dmem_file)(RV32
             Writeback: resultW;
             Memory: aluResultM;
         endcase;
+        logE.log(INFO, fshow(info));
+        logE.log(DEBUG, $format("forwardA %d forwardB %d", hazard.forwardA, hazard.forwardB));
+
         let srcB = (info.ctrl.aluSrc) ? info.immExt : opB;
+        logE.log(TRACE, $format("opA 0x%x opB 0x%x srcB 0x%x", opA, opB, srcB));
 
         let result = alu.exec(info.ctrl.aluControl, opA, srcB);
+
+        logE.log(DEBUG, $format("aluResult ", fshow(result)));
 
 
         let pcTarget = case(info.ctrl.pcTargetSel)
@@ -163,15 +186,21 @@ module mkRV32I_PLH#(parameter String imem_file, parameter String dmem_file)(RV32
             Lui: 0;
         endcase;
 
+        logE.log(TRACE, $format("pcTargetBase 0x%x", pcTarget));
+
         pcTarget = pcTarget + info.immExt;
+
+        logE.log(TRACE, $format("pcTarget 0x%x", pcTarget));
 
         if (info.ctrl.pcSrc == Jump ||
             (info.ctrl.pcSrc == BranchLess && result.less) ||
             (info.ctrl.pcSrc == BranchZero && result.zero) ||
             (info.ctrl.pcSrc == BranchNonZero && !result.zero) ||
             (info.ctrl.pcSrc == BranchGreaterEqual && !result.less)
-        )
+        ) begin
+            logE.logS(DEBUG, "Jump/Branch Condition fulfilled");
             updatePC <= pcTarget;
+        end
 
         reg_memory <= MemoryInfo {
             ctrl: info.ctrl.m,
@@ -187,9 +216,11 @@ module mkRV32I_PLH#(parameter String imem_file, parameter String dmem_file)(RV32
 
     rule memory if (active);
         let info = reg_memory;
+        logM.log(INFO, fshow(info));
         let wData = (info.ctrl.memWrite) ? tagged Valid info.writeData : tagged Invalid;
-
+        logM.log(DEBUG, $format("WriteData ", fshow(wData)));
         let rData <- memory_router.access(info.aluResult, info.ctrl.wb.memSel, wData);
+        logM.log(DEBUG, $format("ReadData 0x%x", rData));
 
         reg_writeback <= WritebackInfo {
             ctrl: info.ctrl.wb,
@@ -212,11 +243,14 @@ module mkRV32I_PLH#(parameter String imem_file, parameter String dmem_file)(RV32
 
     rule writeback if (active);
         let info = reg_writeback;
+        logW.log(INFO, fshow(info));
         let dataSgnExt = case(info.ctrl.memSel)
             Byte: signExtend(info.readData[7:0]);
             Halfword: signExtend(info.readData[15:0]);
             Word: info.readData;
         endcase;
+
+        logW.log(TRACE, $format("DataSgnExt 0x%x", dataSgnExt));
 
         let result = case(info.ctrl.resultSrc)
             ALU: info.aluResult;
@@ -224,6 +258,9 @@ module mkRV32I_PLH#(parameter String imem_file, parameter String dmem_file)(RV32
             PCPlus4: info.pcPlus4;
             PCTarget: info.pcTarget;
         endcase;
+
+        logW.log(DEBUG, $format("Result 0x%x", result));
+        
 
         resultW <= result;
 

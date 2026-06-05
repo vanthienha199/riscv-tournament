@@ -119,7 +119,7 @@ typedef struct {
     Bit#(REGW) rd;
     Bit#(WIDTH) pcTarget;
     Bit#(WIDTH) pcPlus4;
-} WritebackInfo deriving (Bits,Eq);
+} WritebackInfo deriving (Bits,Eq,FShow);
 
 typedef struct {
     MemoryCtrl ctrl;
@@ -140,12 +140,12 @@ typedef struct {
     Bit#(REGW) rs2;
     Bit#(WIDTH) immExt;
     Bit#(WIDTH) pcPlus4;
-} ExecuteInfo deriving (Bits, Eq);
+} ExecuteInfo deriving (Bits, Eq,FShow);
 
 typedef struct {
     Bit#(WIDTH) instr;
     Bit#(WIDTH) pc;
     Bit#(WIDTH) pcPlus4;
-} DecodeInfo deriving (Bits, Eq);
+} DecodeInfo deriving (Bits, Eq,FShow);
 
 endpackage
