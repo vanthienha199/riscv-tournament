@@ -63,7 +63,7 @@ cd WORK_DIR && \\
   for ((i = 0 ; i < 1024 ; i++)); do echo 0 >> data.txt; done; \\
   cat data.hex.txt >> data.txt; \\
   mv data.txt files/data.txt; \\
-  make -C {core_dir} TEXT_SEGMENT_SIM_SIZE=$$IMEM_SIZE DATA_SEGMENT_SIM_SIZE=$$DMEM_SIZE BUILDDIR=$$PWD/build PROGRAM=hello_world.s sim && \\
+  make -C {core_dir} TEXT_SEGMENT_SIM_SIZE=$$IMEM_SIZE DATA_SEGMENT_SIM_SIZE=$$DMEM_SIZE MOUNT_BUILD_DIR=$$PWD/build MOUNT_FILE_DIR=$$PWD/files PROGRAM=hello_world.s sim && \\
   tr 'A-F' 'a-f' < build/DUT-{core_name}.signature > DUT-{core_name}.signature.tmp && \\
   mv DUT-{core_name}.signature.tmp DUT-{core_name}.signature
 """.strip()

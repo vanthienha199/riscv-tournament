@@ -63,8 +63,9 @@ CXX_NO_OPT := 1
 
 MAKE = make -f docker.mk
 
-IMEM_FILE := ./files/text.txt
-DMEM_FILE := ./files/data.txt
+FILE_DIR=./files/
+IMEM_FILE := $(FILE_DIR)/text.txt
+DMEM_FILE := $(FILE_DIR)/data.txt
 
 include $(BSV_LIBS)/bluelib/*.mk
 

@@ -62,7 +62,6 @@ endif
 include ../../framework/make/docker.mk
 
 DOCKER_IMAGE ?= wirthjohannes/bsv:riscv-tournament
-MOUNT_DIR = /home/ubuntu/core
 
 DOCKER_CMD = $(DOCKER_RUN) make $(DOCKER_MAKE_OPTIONS) -C $(MOUNT_DIR) -f $(MOUNT_DIR)/docker.mk
 
@@ -85,7 +84,9 @@ bitstream: synth
 	@test -n "$$SKIP_PROGRAM_FPGA" || openFPGALoader -b $(OFL_BOARD) $(SYNTH_DIR)/pack.bit
 
 sim: program check_docker
-	$(DOCKER_CMD) sim SIM_TYPE=$(SIM_TYPE) VSIM=$(VSIM) LOG=$(LOG) SIMULATION=1 TEXT_SEGMENT_SIM_SIZE=$(TEXT_SEGMENT_SIM_SIZE) DATA_SEGMENT_SIM_SIZE=$(DATA_SEGMENT_SIM_SIZE)
+	mkdir -p $(MOUNT_BUILD_DIR)
+	cp ./zero.txt $(MOUNT_BUILD_DIR)/
+	$(DOCKER_CMD) sim BUILDDIR=$(BASE_MOUNT_DIR)/build FILE_DIR=$(BASE_MOUNT_DIR)/files SIM_TYPE=$(SIM_TYPE) VSIM=$(VSIM) LOG=$(LOG) SIMULATION=1 TEXT_SEGMENT_SIM_SIZE=$(TEXT_SEGMENT_SIM_SIZE) DATA_SEGMENT_SIM_SIZE=$(DATA_SEGMENT_SIM_SIZE)
 
 clean:
 	rm -rf $(BUILD_DIR) $(FILE_DIR)
