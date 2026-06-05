@@ -216,3 +216,4 @@ The demo program writes a binary counter to MMIO `0x20000000`, driving the board
 
 Tournament framework and reference Verilog core: MIT.  
 `riscv-arch-test` retains its upstream license (see `framework/tests/riscv-arch-test/`).
+
