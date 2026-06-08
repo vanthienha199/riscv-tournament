@@ -1,0 +1,10 @@
+name: bluespec
+hdl: Bluespec SystemVerilog
+top_module: core_top
+description: 5-stage pipelined RV32I core with hazard unit
+architecture: plh
+isa: rv32i
+simulator: bluesim
+riscof_dmem_size: 65540
+synth_target: gatemate_eval
+synth_device: CCGM1A1
