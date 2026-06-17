@@ -27,9 +27,41 @@ def load_core_meta(core_dir):
     return meta
 
 
-def sim_command(core_name, core_dir, simulator, riscof_dmem_size=65540):
+def sim_command(core_name, core_dir, simulator, riscof_dmem_size=65540, hdl="Verilog"):
     if simulator == "iverilog":
-        return f"""
+        if hdl == "TL-Verilog":
+            # TL-Verilog: compile with sandpiper-saas first
+            return f"""
+cd WORK_DIR && \\
+  IMEM_WORDS=$$(wc -l < ./files/text.txt); \\
+  IMEM_SIZE=1; \\
+  while [ $$IMEM_SIZE -lt $$IMEM_WORDS ]; do IMEM_SIZE=$$((IMEM_SIZE * 2)); done; \\
+  if [ $$IMEM_SIZE -lt 8192 ]; then IMEM_SIZE=8192; fi; \\
+  if [ $$IMEM_SIZE -lt 4 ]; then IMEM_SIZE=4; fi; \\
+  while [ $$(wc -l < ./files/text.txt) -lt $$IMEM_SIZE ]; do echo 00000000 >> ./files/text.txt; done; \\
+  DMEM_SIZE={riscof_dmem_size}; \\
+  echo "IMEM_SIZE=$$IMEM_SIZE DMEM_SIZE=$$DMEM_SIZE (text words=$$IMEM_WORDS)"; \\
+  mkdir -p gen/support/src gen/support/include gen/support/peripherals gen/support/tb; \\
+  cp {core_dir}/../verilog/rtl/src/register_file.v gen/support/src/; \\
+  cp -r {core_dir}/../verilog/rtl/include/* gen/support/include/; \\
+  cp -r {core_dir}/../verilog/rtl/peripherals/* gen/support/peripherals/; \\
+  cp -r {core_dir}/../verilog/rtl/tb/* gen/support/tb/; \\
+  cp {core_dir}/rtl/tb/testbench_debug.v gen/support/tb/testbench.v 2>/dev/null || true; \\
+  sandpiper-saas -i {core_dir}/rtl/rv32i_plh.tlv -o rv32i_plh.v --outdir gen --reset0 --clkAlways --inlineGen > /dev/null 2>&1 || test -f gen/rv32i_plh.v; \\
+  VVP_FLAGS=""; \\
+  if [ "$$DEBUG_VCD" = "1" ]; then VVP_FLAGS="+debug"; fi; \\
+  iverilog -g2005-sv -DSIMULATION -Igen -Igen/support/include -y{core_dir}/rtl -ygen/support/peripherals -ygen/support/src \\
+    -Ptestbench.IMEM_SIZE=$$IMEM_SIZE -Ptestbench.DMEM_SIZE=$$DMEM_SIZE \\
+    -Ptestbench.SIM_TIMEOUT=0 \\
+    gen/rv32i_plh.v {core_dir}/rtl/instruction_memory_fast.v {core_dir}/rtl/data_memory_fast.v gen/support/tb/testbench.v -o sim.vvp && \\
+  timeout 30 vvp sim.vvp $$VVP_FLAGS && \\
+  mv DUT-verilog.signature DUT-{core_name}.signature 2>/dev/null || true; \\
+  tr 'A-F' 'a-f' < DUT-{core_name}.signature > DUT-{core_name}.signature.tmp && \\
+  mv DUT-{core_name}.signature.tmp DUT-{core_name}.signature
+""".strip()
+        else:
+            # Standard Verilog
+            return f"""
 cd WORK_DIR && \\
   IMEM_WORDS=$$(wc -l < ./files/text.txt); \\
   IMEM_SIZE=1; \\
@@ -78,6 +110,7 @@ def write_plugin(core_name, meta, plugin_dir, core_dir):
         core_dir,
         meta.get("simulator", "iverilog"),
         int(meta.get("riscof_dmem_size", 65540)),
+        meta.get("hdl", "Verilog"),
     )
 
     plugin_py = f'''import os
@@ -108,8 +141,10 @@ class {plugin_class}(pluginTemplate):
     def initialise(self, suite, work_dir, archtest_env):
         self.work_dir = work_dir
         self.suite_dir = suite
+        # Use absolute paths to toolchain wrappers in framework/bin
+        toolchain_dir = os.path.abspath(os.path.join(self.core_dir, "../../framework/bin"))
         self.compile_cmd = (
-            "riscv%s-unknown-elf-gcc -g -march=%s "
+            toolchain_dir + "/riscv%s-unknown-elf-gcc -g -march=%s "
             "-static -mcmodel=medany -fvisibility=hidden -nostdlib -nostartfiles "
             "-T " + self.pluginpath + "/env/link.ld "
             "-I " + self.pluginpath + "/env/ "
@@ -117,11 +152,11 @@ class {plugin_class}(pluginTemplate):
         )
         self.text_copy_cmd = (
             "rm -rf ./files; mkdir ./files; "
-            "riscv%s-unknown-elf-objcopy -O binary -j .text.init -j .text dut.elf dut.text.bin --strip-debug; "
+            + toolchain_dir + "/riscv%s-unknown-elf-objcopy -O binary -j .text.init -j .text dut.elf dut.text.bin --strip-debug; "
             "od -t x4 -An -w4 -v dut.text.bin | tr -d \\" \\" > ./files/text.txt"
         )
         self.data_copy_cmd = (
-            "riscv%s-unknown-elf-objcopy -O binary -j .data -j .data.string dut.elf dut.data.bin --strip-debug; "
+            toolchain_dir + "/riscv%s-unknown-elf-objcopy -O binary -j .data -j .data.string dut.elf dut.data.bin --strip-debug; "
             "od -t x4 -An -w4 -v dut.data.bin | tr -d \\" \\" > data.hex.txt; "
             "awk 'BEGIN {{ addr=268439552; }} {{ printf(\\"%%08x %%s\\\\n\\", addr, $$0); addr += 4; }}' data.hex.txt > ./files/data.txt"
         )
@@ -140,7 +175,11 @@ class {plugin_class}(pluginTemplate):
         make.makeCommand = "make -k -j" + self.num_jobs
         for testname in testList:
             testentry = testList[testname]
-            compile_macros = " -D" + " -D".join(testentry["macros"])
+            macros = testentry.get("macros", [])
+            if isinstance(macros, list) and macros:
+                compile_macros = " -D" + " -D".join(macros)
+            else:
+                compile_macros = ""
             cmd = self.compile_cmd % (self.xlen, testentry["isa"].lower(), testentry["test_path"], compile_macros)
             cmd_text = self.text_copy_cmd % self.xlen
             cmd_data = self.data_copy_cmd % self.xlen
@@ -185,6 +224,10 @@ reset:
 def write_config_ini(cores, dut_core=None):
     if dut_core is None:
         dut_core = next((c for c in cores if not c.startswith("_")), "verilog")
+    
+    # Get absolute path to framework/bin for Sail wrappers
+    framework_bin = os.path.abspath(os.path.join(FRAMEWORK_TESTS, "../bin"))
+    
     lines = [
         "[RISCOF]",
         "ReferencePlugin=sail_cSim",
@@ -194,6 +237,7 @@ def write_config_ini(cores, dut_core=None):
         "",
         "[sail_cSim]",
         "pluginpath=sail_cSim",
+        f"PATH={framework_bin}",
         "",
     ]
     for core in cores:

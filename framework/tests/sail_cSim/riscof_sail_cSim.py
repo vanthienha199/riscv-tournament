@@ -41,8 +41,10 @@ class sail_cSim(pluginTemplate):
     def initialise(self, suite, work_dir, archtest_env):
         self.suite = suite
         self.work_dir = work_dir
-        self.objdump_cmd = 'riscv{1}-unknown-elf-objdump -D {0} > {2};'
-        self.compile_cmd = 'riscv{1}-unknown-elf-gcc -march={0} \
+        # Use absolute path to toolchain (../../bin from framework/tests/sail_cSim)
+        toolchain_dir = os.path.abspath(os.path.join(self.pluginpath, "../../bin"))
+        self.objdump_cmd = f'{toolchain_dir}/riscv{{1}}-unknown-elf-objdump -D {{0}} > {{2}};'
+        self.compile_cmd = f'{toolchain_dir}/riscv{{1}}-unknown-elf-gcc -march={{0}} \
          -static -mcmodel=medany -fvisibility=hidden -nostdlib -nostartfiles\
          -T '+self.pluginpath+'/env/link.ld\
          -I '+self.pluginpath+'/env/\
