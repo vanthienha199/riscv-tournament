@@ -1,5 +1,8 @@
 # RISC-V Tournament: Battle of HDLs
 
+**This repository is hacked up for exploration and discovery. Do not build on this AI mess.**
+
+
 A community-driven, reproducible comparison framework for RISC-V microarchitecture implementations across HDL paradigms.
 
 Modern HDLs span traditional RTL, HLS, and generative approaches — yet directly comparable evaluations under identical conditions remain rare. This repository provides a standardized GitHub-based tournament: contributors implement the same RV32I pipelined core (with hazard unit), and the framework runs architectural compliance tests (RISCOF) and FPGA synthesis (Cologne Chip GateMate Evaluation Board) under uniform conditions.
@@ -10,23 +13,21 @@ All results are public, reproducible, and automatically summarized below.
 
 ## Tournament Results
 
-*Last updated: 2026-06-02 09:48 UTC*
+*Last updated: 2026-06-15 01:48 UTC*
 
 ### Architecture Test Compliance (RISCOF / RV32I)
 
 | Core | HDL | Tests Passed | Tests Failed | Pass Rate |
 |------|-----|--------------|--------------|-----------|
+| tlverilog | TL-Verilog | - | - | - |
 | verilog | Verilog | 38 | 0 | 100.0% |
 
 ### FPGA Synthesis (Cologne Chip GateMate Evaluation Board / CCGM1A1)
 
 | Core | CPE_LT | CPE_FF | RAM_HALF | Max Freq (MHz) | Bitstream |
 |------|--------|--------|----------|----------------|-----------|
-| verilog | 11558 | 9234 | 3 | 17.15 | yes |
-
-### Efficiency Ranking (lower CPE_LT count is better)
-
-1. **verilog** — 11558 CPE_LT, 17.15 MHz
+| tlverilog | - | - | - | - | no |
+| verilog | - | - | - | - | no |
 
 <!-- TOURNAMENT_REPORT_END -->
 
@@ -34,6 +35,8 @@ All results are public, reproducible, and automatically summarized below.
 
 ```bash
 git clone <this-repo> rv_tournament && cd rv_tournament
+
+source .venv/bin/activate
 
 # One-time setup (clones riscv-arch-test, generates RISCOF plugins)
 make setup
@@ -94,6 +97,8 @@ See `cores/_template/README.md` for details.
 
 ### Ubuntu (22.04 / 24.04)
 
+From this repo clone:
+
 ```bash
 sudo apt update
 sudo apt install -y git make python3 python3-pip gcc g++ flex bison \
@@ -107,11 +112,16 @@ sudo apt install -y gcc-riscv64-unknown-elf binutils-riscv64-unknown-elf
 # Download from https://github.com/YosysHQ/oss-cad-suite/releases
 wget https://github.com/YosysHQ/oss-cad-suite-build/releases/download/2026-05-29/oss-cad-suite-linux-x64-20260529.tgz
 tar xzf oss-cad-suite-linux-x64-*.tgz
-echo 'source ~/oss-cad-suite/environment' >> ~/.bashrc
-source ~/oss-cad-suite/environment
+grep -qxF 'source ~/oss-cad-suite/environment' ~/.bashrc || \
+  echo 'source ~/oss-cad-suite/environment' >> ~/.bashrcsource ~/oss-cad-suite/environment
+
+# Python environment
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -U pip
 
 # RISCOF
-pip install --user riscof
+pip install riscof
 
 # SAIL C reference simulator (required for arch tests)
 # Downloads a prebuilt sail-riscv release and installs riscv_sim_rv32d wrappers.
