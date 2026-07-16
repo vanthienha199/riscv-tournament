@@ -13,9 +13,8 @@ module instruction_memory_fast #(
   reg [31:0] imem [0:IMEM_SIZE-1];
 
   initial begin
-`ifndef SYNTHESIS
+    // Synthesizable ROM init. Must not be guarded out for synthesis.
     $readmemh(TEXT_SEGMENT, imem);
-`endif
   end
 
   assign RD = imem[A[IDX_MSB:2]];

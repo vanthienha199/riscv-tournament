@@ -126,13 +126,13 @@ sim: program
 
 prep_synth: program tlv
 	@while [ $$(wc -l < $(TEXT_FILE)) -lt $(TEXT_SEGMENT_SYNTH_SIZE) ]; do echo 00000000 >> $(TEXT_FILE); done
-	@cat $(RTL_SUPPORT)/include/riscv_pkg.vh $(VERILOG_SRC) $(wildcard $(RTL_SUPPORT)/src/*.v) $(wildcard $(RTL_SUPPORT)/peripherals/*.v) > $(SYNTH_DIR)/bundle.v
+	@cat $(RTL_SUPPORT)/include/riscv_pkg.vh $(VERILOG_SRC) $(wildcard rtl/*.v) $(wildcard $(RTL_SUPPORT)/src/*.v) $(wildcard $(RTL_SUPPORT)/peripherals/*.v) > $(SYNTH_DIR)/bundle.v
 	@sed -i 's/parameter IMEM_SIZE    = 256/parameter IMEM_SIZE    = $(TEXT_SEGMENT_SYNTH_SIZE)/g' $(SYNTH_DIR)/bundle.v
 	@sed -i 's/parameter DMEM_SIZE    = 256/parameter DMEM_SIZE    = $(DATA_SEGMENT_SYNTH_SIZE)/g' $(SYNTH_DIR)/bundle.v
 	@echo "$(GREEN)Bundled Verilog for synthesis$(RESET)"
 
 synth: prep_synth
-	@yosys -p 'read_verilog -DSYNTHESIS -I$(abspath $(RTL_SUPPORT)/include) $(SYNTH_DIR)/bundle.v; hierarchy -top rv32i_plh; synth_gatemate -top rv32i_plh -luttree -nomx8 -json $(SYNTH_DIR)/bundle.json' 2>&1 | tee $(SYNTH_DIR)/yosys.log
+	@yosys -p 'read_verilog -sv -DSYNTHESIS -I$(abspath $(RTL_SUPPORT)/include) $(SYNTH_DIR)/bundle.v; hierarchy -top rv32i_plh; synth_gatemate -top rv32i_plh -luttree -nomx8 -json $(SYNTH_DIR)/bundle.json' 2>&1 | tee $(SYNTH_DIR)/yosys.log
 	@nextpnr-himbaechel --json $(SYNTH_DIR)/bundle.json \
 		--device $(SYNTH_DEVICE) -o ccf=$(SYNTH_CCF) -o out=$(SYNTH_DIR)/impl.txt \
 		--router router2 --log $(SYNTH_DIR)/pnr.log --report $(SYNTH_DIR)/pnr_report.json
