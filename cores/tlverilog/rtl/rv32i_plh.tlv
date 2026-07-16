@@ -36,7 +36,9 @@
    wire reset = startup;
    
    // Register file (global - spans stages: reads @3, writes @4)
-   wire        rf_clk = ~clk;
+   // Posedge write. Half-cycle visibility of the old ~clk write is covered by the
+   // >>2 bypass term in @3.
+   wire        rf_clk = clk;
    wire [31:0] rf_rd1, rf_rd2;
    wire [4:0]  rf_a1, rf_a2;
    wire [4:0]  rf_a3;
@@ -214,15 +216,19 @@
       // Stage 3: Register Read + Execute
       // ==========================================
       @3
-         // Register file read addresses. Bridged through explicit \SV wires instead of
-         // referencing SandPiper-generated names from the \SV region, which lands
-         // before the generated declarations and fails Icarus elaboration.
+         // RF read addresses (the module instance can't reference generated names).
          \SV_plus
             assign rf_a1 = $rs1;
             assign rf_a2 = $rs2;
-         // MYTH: Single-stage bypass from >>1 (previous stage writeback)
-         $src1_value[31:0] = ((>>1$rd == $rs1) && >>1$rf_wr_en && ($rs1 != 5'b0)) ? >>1$result : *rf_rd1;
-         $src2_value[31:0] = ((>>1$rd == $rs2) && >>1$rf_wr_en && ($rs2 != 5'b0)) ? >>1$result : *rf_rd2;
+         // Bypass: >>1 previous instr, >>2 covers the posedge RF write latency.
+         $src1_value[31:0] =
+            ((>>1$rd == $rs1) && >>1$rf_wr_en && ($rs1 != 5'b0)) ? >>1$result :
+            ((>>2$rd == $rs1) && >>2$rf_wr_en && ($rs1 != 5'b0)) ? >>2$result :
+                                                                   *rf_rd1;
+         $src2_value[31:0] =
+            ((>>1$rd == $rs2) && >>1$rf_wr_en && ($rs2 != 5'b0)) ? >>1$result :
+            ((>>2$rd == $rs2) && >>2$rf_wr_en && ($rs2 != 5'b0)) ? >>2$result :
+                                                                   *rf_rd2;
          
          // ALU operations
          $sltu_result = ($src1_value < $src2_value);
