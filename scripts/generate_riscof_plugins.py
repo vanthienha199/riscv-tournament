@@ -47,7 +47,7 @@ cd WORK_DIR && \\
   cp -r {core_dir}/../verilog/rtl/peripherals/* gen/support/peripherals/; \\
   cp -r {core_dir}/../verilog/rtl/tb/* gen/support/tb/; \\
   cp {core_dir}/rtl/tb/testbench_debug.v gen/support/tb/testbench.v 2>/dev/null || true; \\
-  sandpiper-saas -i {core_dir}/rtl/rv32i_plh.tlv -o rv32i_plh.v --outdir gen --reset0 --clkAlways --inlineGen > /dev/null 2>&1 || test -f gen/rv32i_plh.v; \\
+  sandpiper-saas -i {core_dir}/rtl/rv32i_plh.tlv -o rv32i_plh.v --outdir gen --reset0 --clkAlways --inlineGen --noline > /dev/null 2>&1 || test -f gen/rv32i_plh.v; \\
   VVP_FLAGS=""; \\
   if [ "$$DEBUG_VCD" = "1" ]; then VVP_FLAGS="+debug"; fi; \\
   iverilog -g2005-sv -DSIMULATION -Igen -Igen/support/include -y{core_dir}/rtl -ygen/support/peripherals -ygen/support/src \\

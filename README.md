@@ -13,13 +13,13 @@ All results are public, reproducible, and automatically summarized below.
 
 ## Tournament Results
 
-*Last updated: 2026-06-15 01:48 UTC*
+*Last updated: 2026-07-16 15:45 UTC*
 
 ### Architecture Test Compliance (RISCOF / RV32I)
 
 | Core | HDL | Tests Passed | Tests Failed | Pass Rate |
 |------|-----|--------------|--------------|-----------|
-| tlverilog | TL-Verilog | - | - | - |
+| tlverilog | TL-Verilog | 38 | 0 | 100.0% |
 | verilog | Verilog | 38 | 0 | 100.0% |
 
 ### FPGA Synthesis (Cologne Chip GateMate Evaluation Board / CCGM1A1)

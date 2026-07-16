@@ -60,9 +60,9 @@ SANDPIPER = sandpiper-saas
 # --clkAlways: avoid clock gating logic
 # --inlineGen: inline generated code (no separate _gen.v file)
 ifdef SIMULATION
-SANDPIPER_FLAGS = -i $(TLV_SRC) -o rv32i_plh.v --outdir $(BUILD_DIR)/gen --reset0 --clkAlways --inlineGen
+SANDPIPER_FLAGS = -i $(TLV_SRC) -o rv32i_plh.v --outdir $(BUILD_DIR)/gen --reset0 --clkAlways --inlineGen --noline
 else
-SANDPIPER_FLAGS = -i $(TLV_SRC) -o rv32i_plh.v --outdir $(BUILD_DIR)/gen --clkAlways --inlineGen
+SANDPIPER_FLAGS = -i $(TLV_SRC) -o rv32i_plh.v --outdir $(BUILD_DIR)/gen --clkAlways --inlineGen --noline
 endif
 
 .PHONY: all prepare program tlv sim prep_synth synth bitstream clean
