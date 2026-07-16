@@ -38,14 +38,15 @@
    // Register file (global - spans stages: reads @3, writes @4)
    wire        rf_clk = ~clk;
    wire [31:0] rf_rd1, rf_rd2;
+   wire [4:0]  rf_a1, rf_a2;
    wire [4:0]  rf_a3;
    wire        rf_we3;
    wire [31:0] rf_wd3;
-   
+
    register_file regfile (
      .clk(rf_clk),
-     .A1(CPU_rs1_a3),
-     .A2(CPU_rs2_a3),
+     .A1(rf_a1),
+     .A2(rf_a2),
      .A3(rf_a3),
      .WE3(rf_we3),
      .WD3(rf_wd3),
@@ -213,6 +214,12 @@
       // Stage 3: Register Read + Execute
       // ==========================================
       @3
+         // Register file read addresses. Bridged through explicit \SV wires instead of
+         // referencing SandPiper-generated names from the \SV region, which lands
+         // before the generated declarations and fails Icarus elaboration.
+         \SV_plus
+            assign rf_a1 = $rs1;
+            assign rf_a2 = $rs2;
          // MYTH: Single-stage bypass from >>1 (previous stage writeback)
          $src1_value[31:0] = ((>>1$rd == $rs1) && >>1$rf_wr_en && ($rs1 != 5'b0)) ? >>1$result : *rf_rd1;
          $src2_value[31:0] = ((>>1$rd == $rs2) && >>1$rf_wr_en && ($rs2 != 5'b0)) ? >>1$result : *rf_rd2;

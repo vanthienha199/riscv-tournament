@@ -4,8 +4,9 @@
 
 set -euo pipefail
 
-BIN_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../framework/bin" && pwd)"
+BIN_DIR="$(dirname "${BASH_SOURCE[0]}")/../framework/bin"
 mkdir -p "$BIN_DIR"
+BIN_DIR="$(cd "$BIN_DIR" && pwd)"
 
 for tool in gcc g++ as ld objcopy objdump ar nm strip; do
   cat > "$BIN_DIR/riscv32-unknown-elf-$tool" << EOF
