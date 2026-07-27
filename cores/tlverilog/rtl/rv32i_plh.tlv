@@ -35,31 +35,6 @@
    // Reset signal for --reset0 flag  
    wire reset = startup;
    
-   // Register file (global - spans stages: reads @3, writes @4)
-   // Posedge write. Half-cycle visibility of the old ~clk write is covered by the
-   // >>2 bypass term in @3.
-   wire        rf_clk = clk;
-   wire [31:0] rf_rd1, rf_rd2;
-   wire [4:0]  rf_a1, rf_a2;
-   wire [4:0]  rf_a3;
-   wire        rf_we3;
-   wire [31:0] rf_wd3;
-
-   register_file regfile (
-     .clk(rf_clk),
-     .A1(rf_a1),
-     .A2(rf_a2),
-     .A3(rf_a3),
-     .WE3(rf_we3),
-     .WD3(rf_wd3),
-     .RD1(rf_rd1),
-     .RD2(rf_rd2)
-     `ifdef SIMULATION
-     ,
-     .registers(registers)
-     `endif
-   );
-   
 \TLV
    
    // ==========================================
@@ -216,19 +191,35 @@
       // Stage 3: Register Read + Execute
       // ==========================================
       @3
-         // RF read addresses (the module instance can't reference generated names).
+         // Register file. Ports name pipesignals directly: reads are this
+         // instruction's, in-stage; the write ports belong to the instruction
+         // currently in @4, hence one extra level of >>n alignment relative to
+         // the @4 expressions they replace. Posedge write; half-cycle
+         // visibility of the old ~clk write is covered by the >>2 bypass term.
          \SV_plus
-            assign rf_a1 = $rs1;
-            assign rf_a2 = $rs2;
+            register_file regfile (
+              .clk(*clk),
+              .A1($rs1),
+              .A2($rs2),
+              .A3(>>3$valid_load ? >>3$rd : >>1$rd),
+              .WE3(>>1$rf_wr_en),
+              .WD3(>>1$result),
+              .RD1($$rd1_raw[31:0]),
+              .RD2($$rd2_raw[31:0])
+              `ifdef SIMULATION
+              ,
+              .registers(*registers)
+              `endif
+            );
          // Bypass: >>1 previous instr, >>2 covers the posedge RF write latency.
          $src1_value[31:0] =
             ((>>1$rd == $rs1) && >>1$rf_wr_en && ($rs1 != 5'b0)) ? >>1$result :
             ((>>2$rd == $rs1) && >>2$rf_wr_en && ($rs1 != 5'b0)) ? >>2$result :
-                                                                   *rf_rd1;
+                                                                   $rd1_raw;
          $src2_value[31:0] =
             ((>>1$rd == $rs2) && >>1$rf_wr_en && ($rs2 != 5'b0)) ? >>1$result :
             ((>>2$rd == $rs2) && >>2$rf_wr_en && ($rs2 != 5'b0)) ? >>2$result :
-                                                                   *rf_rd2;
+                                                                   $rd2_raw;
          
          // ALU operations
          $sltu_result = ($src1_value < $src2_value);
@@ -380,15 +371,11 @@
          
          // Register writeback (connects to global register file)
          // Note: FENCE doesn't write to registers
-         $rf_wr_en = (($rd != 5'b0) && $valid && 
+         $rf_wr_en = (($rd != 5'b0) && $valid &&
                       ($is_r_type || $is_i_type || $is_u_type || $is_j_type) &&
                       !$is_load && !$is_fence) ||
                      >>2$valid_load;
-         
-         *rf_a3 = >>2$valid_load ? >>2$rd : $rd;
-         *rf_wd3 = $result;
-         *rf_we3 = $rf_wr_en;
-         
+
          // Pipeline ecall signal to @4 to sync with register writeback
          // This ensures register values are updated before testbench samples them
          $ecall_signal = >>2$is_ecall && >>2$valid;

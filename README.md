@@ -13,7 +13,7 @@ All results are public, reproducible, and automatically summarized below.
 
 ## Tournament Results
 
-*Last updated: 2026-07-16 16:14 UTC*
+*Last updated: 2026-07-27 16:47 UTC*
 
 ### Architecture Test Compliance (RISCOF / RV32I)
 
@@ -28,14 +28,14 @@ All results are public, reproducible, and automatically summarized below.
 | Core | CPE_LT | CPE_FF | RAM_HALF | Max Freq (MHz) | Bitstream |
 |------|--------|--------|----------|----------------|-----------|
 | bluespec | 5216 | 2652 | 4 | 16.39 | yes |
-| tlverilog | 12062 | 9223 | 3 | 13.19 | yes |
+| tlverilog | 12062 | 9223 | 3 | 12.53 | yes |
 | verilog | 11558 | 9234 | 3 | 17.15 | yes |
 
 ### Efficiency Ranking (lower CPE_LT count is better)
 
 1. **bluespec** — 5216 CPE_LT, 16.39 MHz
 2. **verilog** — 11558 CPE_LT, 17.15 MHz
-3. **tlverilog** — 12062 CPE_LT, 13.19 MHz
+3. **tlverilog** — 12062 CPE_LT, 12.53 MHz
 
 <!-- TOURNAMENT_REPORT_END -->
 
