@@ -67,12 +67,17 @@
       @0
          // MYTH PC Logic with startup handling
          // Startup keeps PC at 0 for first instruction
+         // One shared incrementer serves both redirect-replay (load) and
+         // sequential fetch; the mux selects its operand, so only a single
+         // 32-bit adder is synthesized here.
+         $pc_plus4_src[31:0] = >>3$valid_load ? >>3$pc : >>1$pc;
+         $pc_plus4[31:0] = $pc_plus4_src + 32'd4;
          $pc[31:0] = *startup ? 32'b0 :
                      >>3$valid_taken_br ? >>3$br_tgt_pc :
-                     >>3$valid_load ? >>3$pc + 32'd4 :
+                     >>3$valid_load ? $pc_plus4 :
                      (>>3$valid_jump && >>3$is_jalr) ? >>3$jump_tgt_pc :
-                     >>1$pc + 32'd4;
-         
+                     $pc_plus4;
+
          $inc_pc[31:0] = $pc + 32'd4;
       
       // ==========================================
@@ -251,7 +256,8 @@
          
          // Branch/jump targets and decisions
          $br_tgt_pc[31:0] = $pc + $imm;
-         $jump_tgt_pc[31:0] = $is_jalr ? (($src1_value + $imm) & ~32'h1) : ($pc + $imm);
+         // JAL target equals the branch target; reuse the same adder.
+         $jump_tgt_pc[31:0] = $is_jalr ? (($src1_value + $imm) & ~32'h1) : $br_tgt_pc;
          
          $taken_br = $is_beq  ? ($src1_value == $src2_value) :
                      $is_bne  ? ($src1_value != $src2_value) :
