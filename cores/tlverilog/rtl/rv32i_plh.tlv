@@ -77,8 +77,6 @@
                      >>3$valid_load ? $pc_plus4 :
                      (>>3$valid_jump && >>3$is_jalr) ? >>3$jump_tgt_pc :
                      $pc_plus4;
-
-         $inc_pc[31:0] = $pc + 32'd4;
       
       // ==========================================
       // Stage 1: IMem Fetch
@@ -233,8 +231,14 @@
          $sra_result[31:0] = \$signed($src1_value) >>> $src2_value[4:0];
          $srai_result[31:0] = \$signed($src1_value) >>> $imm[4:0];
          
-         $alu_result[31:0] = 
-            $is_add   ? ($src1_value + $src2_value) :
+         // One shared adder serves ADD, ADDI, and the load/store address
+         // (matching the Verilog core's main ALU). The operand mux selects
+         // rs2 only for ADD; every other user wants the immediate.
+         $alu_op2[31:0] = $is_add ? $src2_value : $imm;
+         $src1_plus_op2[31:0] = $src1_value + $alu_op2;
+
+         $alu_result[31:0] =
+            $is_add   ? $src1_plus_op2 :
             $is_sub   ? ($src1_value - $src2_value) :
             $is_sll   ? ($src1_value << $src2_value[4:0]) :
             $is_slt   ? {{31{1'b0}}, \$signed($src1_value) < \$signed($src2_value)} :
@@ -244,7 +248,7 @@
             $is_sra   ? $sra_result :
             $is_or    ? ($src1_value | $src2_value) :
             $is_and   ? ($src1_value & $src2_value) :
-            $is_addi  ? ($src1_value + $imm) :
+            $is_addi  ? $src1_plus_op2 :
             $is_slti  ? {{31{1'b0}}, \$signed($src1_value) < \$signed($imm)} :
             $is_sltiu ? {{31{1'b0}}, $sltiu_result} :
             $is_xori  ? ($src1_value ^ $imm) :
@@ -254,10 +258,16 @@
             $is_srli  ? ($src1_value >> $imm[4:0]) :
             $is_srai  ? $srai_result : 32'b0;
          
-         // Branch/jump targets and decisions
-         $br_tgt_pc[31:0] = $pc + $imm;
-         // JAL target equals the branch target; reuse the same adder.
-         $jump_tgt_pc[31:0] = $is_jalr ? (($src1_value + $imm) & ~32'h1) : $br_tgt_pc;
+         // Branch/jump targets and decisions.
+         // One target adder serves branches, JAL, and JALR: the operand mux
+         // picks rs1 for JALR and the PC for everything else. Awkwardness:
+         // for a JALR instruction $br_tgt_pc therefore holds rs1+imm, not
+         // pc+imm, but no path consumes $br_tgt_pc for JALR (the redirect
+         // in @0 uses $jump_tgt_pc for JALR and $br_tgt_pc only for
+         // branches and JAL, which are mutually exclusive with JALR).
+         $tgt_op1[31:0] = $is_jalr ? $src1_value : $pc;
+         $br_tgt_pc[31:0] = $tgt_op1 + $imm;
+         $jump_tgt_pc[31:0] = $is_jalr ? ($br_tgt_pc & ~32'h1) : $br_tgt_pc;
          
          $taken_br = $is_beq  ? ($src1_value == $src2_value) :
                      $is_bne  ? ($src1_value != $src2_value) :
@@ -277,8 +287,11 @@
          $valid_load = $valid && $is_load;
          $valid_jump = $valid && $is_jalr;
          
-         // Memory address calculation
-         $mem_addr[31:0] = $src1_value + $imm;
+         // Memory address comes from the shared ALU adder. For non-memory
+         // instructions this carries whatever the adder computed (e.g.
+         // rs1+rs2 for ADD); that is fine because every consumer of
+         // $mem_addr is gated by $is_load/$is_store.
+         $mem_addr[31:0] = $src1_plus_op2;
          $byte_offset[1:0] = $mem_addr[1:0];
          
          // MMIO routing and control signals
@@ -367,11 +380,18 @@
                           $is_lb  ? {{24{$byte_data[7]}}, $byte_data} :
                           $is_lbu ? {24'b0, $byte_data} : 32'b0;
          
-         // Result selection
+         // Result selection.
+         // One late-stage adder serves both AUIPC (pc+imm) and the JAL/JALR
+         // link value (pc+4); the operand mux picks between them. Both $pc
+         // and $imm are already staged to @4 for other users, so this costs
+         // no extra pipeline flops.
+         $late_op2[31:0] = $is_auipc ? $imm : 32'd4;
+         $pc_plus_late[31:0] = $pc + $late_op2;
+
          $result[31:0] = $is_lui   ? $imm :
-                         $is_auipc ? ($pc + $imm) :
-                         $is_jal   ? ($pc + 32'd4) :
-                         $is_jalr  ? ($pc + 32'd4) :
+                         $is_auipc ? $pc_plus_late :
+                         $is_jal   ? $pc_plus_late :
+                         $is_jalr  ? $pc_plus_late :
                          >>2$valid_load ? >>2$ld_data :
                          $alu_result;
          
