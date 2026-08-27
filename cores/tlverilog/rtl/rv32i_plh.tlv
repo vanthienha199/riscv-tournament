@@ -224,10 +224,22 @@
             ((>>2$rd == $rs2) && >>2$rf_wr_en && ($rs2 != 5'b0)) ? >>2$result :
                                                                    $rd2_raw;
          
-         // ALU operations
-         $sltu_result = ($src1_value < $src2_value);
-         $sltiu_result = ($src1_value < $imm);
-         
+         // ALU operations.
+         // One 33-bit subtractor serves SUB, all six branch comparisons,
+         // and the four set-less-than flavors (matching the Verilog core,
+         // which funnels comparisons through its shared ALU adder). The
+         // operand mux picks the immediate only for SLTI/SLTIU; every
+         // other user compares rs1 against rs2. The borrow bit gives
+         // unsigned less-than, equality is the difference being zero, and
+         // signed less-than comes from the operand signs plus the
+         // difference sign (no overflow is possible when the signs match).
+         $sub_op2[31:0] = ($is_slti || $is_sltiu) ? $imm : $src2_value;
+         $sub_result[32:0] = {1'b0, $src1_value} - {1'b0, $sub_op2};
+         $ult = $sub_result[32];
+         $eq = ($sub_result[31:0] == 32'b0);
+         $slt_res = ($src1_value[31] != $sub_op2[31]) ? $src1_value[31]
+                                                      : $sub_result[31];
+
          $sra_result[31:0] = \$signed($src1_value) >>> $src2_value[4:0];
          $srai_result[31:0] = \$signed($src1_value) >>> $imm[4:0];
          
@@ -239,18 +251,18 @@
 
          $alu_result[31:0] =
             $is_add   ? $src1_plus_op2 :
-            $is_sub   ? ($src1_value - $src2_value) :
+            $is_sub   ? $sub_result[31:0] :
             $is_sll   ? ($src1_value << $src2_value[4:0]) :
-            $is_slt   ? {{31{1'b0}}, \$signed($src1_value) < \$signed($src2_value)} :
-            $is_sltu  ? {{31{1'b0}}, $sltu_result} :
+            $is_slt   ? {{31{1'b0}}, $slt_res} :
+            $is_sltu  ? {{31{1'b0}}, $ult} :
             $is_xor   ? ($src1_value ^ $src2_value) :
             $is_srl   ? ($src1_value >> $src2_value[4:0]) :
             $is_sra   ? $sra_result :
             $is_or    ? ($src1_value | $src2_value) :
             $is_and   ? ($src1_value & $src2_value) :
             $is_addi  ? $src1_plus_op2 :
-            $is_slti  ? {{31{1'b0}}, \$signed($src1_value) < \$signed($imm)} :
-            $is_sltiu ? {{31{1'b0}}, $sltiu_result} :
+            $is_slti  ? {{31{1'b0}}, $slt_res} :
+            $is_sltiu ? {{31{1'b0}}, $ult} :
             $is_xori  ? ($src1_value ^ $imm) :
             $is_ori   ? ($src1_value | $imm) :
             $is_andi  ? ($src1_value & $imm) :
@@ -269,12 +281,13 @@
          $br_tgt_pc[31:0] = $tgt_op1 + $imm;
          $jump_tgt_pc[31:0] = $is_jalr ? ($br_tgt_pc & ~32'h1) : $br_tgt_pc;
          
-         $taken_br = $is_beq  ? ($src1_value == $src2_value) :
-                     $is_bne  ? ($src1_value != $src2_value) :
-                     $is_blt  ? (\$signed($src1_value) < \$signed($src2_value)) :
-                     $is_bge  ? (\$signed($src1_value) >= \$signed($src2_value)) :
-                     $is_bltu ? ($src1_value < $src2_value) :
-                     $is_bgeu ? ($src1_value >= $src2_value) : 1'b0;
+         // All branch decisions come from the shared subtractor above.
+         $taken_br = $is_beq  ? $eq :
+                     $is_bne  ? ! $eq :
+                     $is_blt  ? $slt_res :
+                     $is_bge  ? ! $slt_res :
+                     $is_bltu ? $ult :
+                     $is_bgeu ? ! $ult : 1'b0;
          
          // MYTH: $valid invalidation logic (squashes dependent instructions)
          // Don't execute if previous cycles had taken branches, loads, or jumps
