@@ -1,0 +1,10 @@
+name: tlverilog_unshared
+hdl: TL-Verilog
+top_module: rv32i_plh
+description: Readable unshared-adder variant of the TL-Verilog RV32I core
+architecture: plh
+isa: rv32i
+simulator: iverilog
+riscof_dmem_size: 65540
+synth_target: gatemate_eval
+synth_device: CCGM1A1
