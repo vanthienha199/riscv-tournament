@@ -311,8 +311,25 @@
          $dmem_store = $is_store && $valid;
          $sel_dmem = ($mem_addr[31:28] == 4'h1);
          $sel_gpio = ($mem_addr[31:28] == 4'h2);
-         $dmem_we = $dmem_store && $sel_dmem;
          $gpio_we = $dmem_store && $sel_gpio;
+
+         // WD_UNIT: sub-word stores drive per-byte write enables and replicate
+         // the store data across the word. The older form read the memory in
+         // this same stage and merged the bytes, which forced the read data to
+         // stay combinational; keeping the read data purely pipelined is what
+         // lets synthesis fold the @3 to @4 register into the memory read port
+         // and infer block RAM.
+         $byte_en[3:0] = $is_sb ? (($byte_offset == 2'b00) ? 4'b0001 :
+                                   ($byte_offset == 2'b01) ? 4'b0010 :
+                                   ($byte_offset == 2'b10) ? 4'b0100 :
+                                                             4'b1000) :
+                         $is_sh ? (($byte_offset[1] == 1'b0) ? 4'b0011 :
+                                                               4'b1100) :
+                                  4'b1111;
+         $dmem_we[3:0] = ($dmem_store && $sel_dmem) ? $byte_en : 4'b0000;
+         $dmem_wr_data[31:0] = $is_sb ? {4{$src2_value[7:0]}} :
+                               $is_sh ? {2{$src2_value[15:0]}} :
+                                        $src2_value;
          
          // Instantiate data memory and GPIO  
          \SV_plus
@@ -348,26 +365,12 @@
               .led8(*led8)
             );
          
-         // Capture memory read data immediately (outputs from \SV_plus modules)
+         // Memory read data. Nothing in this stage consumes it, so the only
+         // register on this path is the pipeline register into @4, which
+         // synthesis absorbs as the block RAM output register.
          $dmem_rdata_stg[31:0] = $dmem_rdata;
          $gpio_rdata_stg[31:0] = $gpio_rdata;
-         
-         // WD_UNIT: Write data merge for sub-word stores (matches Verilog wd_unit.v)
-         // Memory has combinational read, so captured rdata is current memory contents
-         // Merge new store data with existing memory based on funct3 and byte offset
-         $dmem_wr_data[31:0] = 
-            $is_sb ? (
-               ($byte_offset == 2'b00) ? {$dmem_rdata_stg[31:8],   $src2_value[7:0]} :
-               ($byte_offset == 2'b01) ? {$dmem_rdata_stg[31:16],  $src2_value[7:0], $dmem_rdata_stg[7:0]} :
-               ($byte_offset == 2'b10) ? {$dmem_rdata_stg[31:24],  $src2_value[7:0], $dmem_rdata_stg[15:0]} :
-                                         {                         $src2_value[7:0], $dmem_rdata_stg[23:0]}
-            ) :
-            $is_sh ? (
-               ($byte_offset[1] == 1'b0) ? {$dmem_rdata_stg[31:16], $src2_value[15:0]} :
-                                           {                        $src2_value[15:0], $dmem_rdata_stg[15:0]}
-            ) :
-            $src2_value;  // SW or default
-      
+
       // ==========================================
       // Stage 4: Writeback
       // ==========================================
