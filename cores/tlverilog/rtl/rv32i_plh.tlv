@@ -225,33 +225,32 @@
                                                                    $rd2_raw;
          
          // ALU operations.
-         // One 33-bit subtractor serves SUB, all six branch comparisons,
-         // and the four set-less-than flavors (matching the Verilog core,
-         // which funnels comparisons through its shared ALU adder). The
-         // operand mux picks the immediate only for SLTI/SLTIU; every
-         // other user compares rs1 against rs2. The borrow bit gives
-         // unsigned less-than, equality is the difference being zero, and
-         // signed less-than comes from the operand signs plus the
-         // difference sign (no overflow is possible when the signs match).
-         $sub_op2[31:0] = ($is_slti || $is_sltiu) ? $imm : $src2_value;
-         $sub_result[32:0] = {1'b0, $src1_value} - {1'b0, $sub_op2};
-         $ult = $sub_result[32];
-         $eq = ($sub_result[31:0] == 32'b0);
-         $slt_res = ($src1_value[31] != $sub_op2[31]) ? $src1_value[31]
-                                                      : $sub_result[31];
+         // One 33-bit adder serves ADD, ADDI, the load/store address, SUB,
+         // all six branch comparisons, and the four set-less-than flavors.
+         // Subtraction is addition of the inverted operand with a carry-in
+         // of one, so a single carry chain yields the sum, the carry-out
+         // (unsigned compare), and the sign information (signed compare).
+         // Operand 2 is rs2 for the register-register forms and branches,
+         // the immediate for everything else, including the memory address.
+         $sub_mode = $is_sub || $is_slt || $is_sltu || $is_slti || $is_sltiu || $is_b_type;
+         $alu_op2_raw[31:0] = ($is_add || $is_sub || $is_slt || $is_sltu || $is_b_type) ? $src2_value : $imm;
+         $alu_op2[31:0] = $sub_mode ? ~$alu_op2_raw : $alu_op2_raw;
+         $alu_sum[32:0] = {1'b0, $src1_value} + {1'b0, $alu_op2} + {32'b0, $sub_mode};
+         $src1_plus_op2[31:0] = $alu_sum[31:0];
+         // In subtract mode the carry-out is set exactly when rs1 >= op2
+         // unsigned; equality is a zero difference; signed less-than comes
+         // from the operand signs, or the difference sign when they match.
+         $ult = ! $alu_sum[32];
+         $eq = ($alu_sum[31:0] == 32'b0);
+         $slt_res = ($src1_value[31] != $alu_op2_raw[31]) ? $src1_value[31]
+                                                          : $alu_sum[31];
 
          $sra_result[31:0] = \$signed($src1_value) >>> $src2_value[4:0];
          $srai_result[31:0] = \$signed($src1_value) >>> $imm[4:0];
-         
-         // One shared adder serves ADD, ADDI, and the load/store address
-         // (matching the Verilog core's main ALU). The operand mux selects
-         // rs2 only for ADD; every other user wants the immediate.
-         $alu_op2[31:0] = $is_add ? $src2_value : $imm;
-         $src1_plus_op2[31:0] = $src1_value + $alu_op2;
 
          $alu_result[31:0] =
             $is_add   ? $src1_plus_op2 :
-            $is_sub   ? $sub_result[31:0] :
+            $is_sub   ? $src1_plus_op2 :
             $is_sll   ? ($src1_value << $src2_value[4:0]) :
             $is_slt   ? {{31{1'b0}}, $slt_res} :
             $is_sltu  ? {{31{1'b0}}, $ult} :

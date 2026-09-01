@@ -4,11 +4,14 @@ A complete RV32I implementation in TL-Verilog for the RISC-V compliance tourname
 
 ✅ **Status**: Working - Passes RISCOF compliance tests
 
-This directory holds the resource-shared version: the ALU adder, the
-jump/branch target adder, the late PC adder, and the comparison subtractor
-are each shared across their users through operand muxes. The readable
-variant without any sharing lives in `cores/tlverilog_unshared/`; the two
-are functionally equivalent, and either directory can be deleted on its own.
+This directory holds the optimized design: one ALU adder serves add,
+subtract, the load/store address, and every comparison; the jump/branch
+target adder and the late PC adder are shared across their users; and the
+data memory infers block RAM. Two sibling variants exist for comparison:
+`cores/tlverilog_matched/` mirrors the Verilog reference core's structure
+(same resources), and `cores/tlverilog_unshared/` is the readable form
+without any sharing. All are functionally equivalent, and any directory can
+be deleted on its own.
 
 ## Implementation Details
 
